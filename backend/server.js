@@ -287,6 +287,29 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// Serve static files from React build (dist folder is in parent directory)
+// This must be AFTER all API routes
+const distPath = path.join(__dirname, '..', 'dist');
+if (fs.existsSync(distPath)) {
+  app.use(express.static(distPath));
+}
+
+// Serve React app for all non-API routes (SPA fallback)
+// This must be LAST, after static files
+app.get('*', (req, res) => {
+  // Don't serve index.html for API routes
+  if (req.path.startsWith('/api/')) {
+    return res.status(404).json({ error: 'Not found' });
+  }
+  
+  const indexPath = path.join(__dirname, '..', 'dist', 'index.html');
+  if (fs.existsSync(indexPath)) {
+    res.sendFile(indexPath);
+  } else {
+    res.status(404).send('Frontend build not found. Please run npm run build.');
+  }
+});
+
 // Start server
 app.listen(PORT, () => {
   console.log(`╔════════════════════════════════════════════╗`);
