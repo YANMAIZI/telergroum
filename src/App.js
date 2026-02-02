@@ -573,29 +573,12 @@ const VirtyExchangeApp = () => {
 
         {/* Action Cards */}
         <div className="action-cards-grid">
-          <Link to="/buy-virty" className="action-card-link">
+          {/* Продать – сверху, на всю ширину */}
+          <Link to="/sell-virty" className="action-card-link action-card-link-full">
             <motion.div
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1, duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
-              className="action-card action-card-buy"
-              whileTap={{ scale: 0.98 }}
-            >
-              <div className="action-card-icon">
-                <TrendingUp size={32} strokeWidth={2} />
-              </div>
-              <div className="action-card-content">
-                <h3 className="action-card-title">Купить Вирты</h3>
-              </div>
-              <ChevronRight size={22} strokeWidth={2} className="action-card-arrow" />
-            </motion.div>
-          </Link>
-
-          <Link to="/sell-virty" className="action-card-link">
-            <motion.div
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.15, duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
               className="action-card action-card-sell"
               whileTap={{ scale: 0.98 }}
             >
@@ -609,17 +592,14 @@ const VirtyExchangeApp = () => {
             </motion.div>
           </Link>
 
+          {/* Мои заявки – по центру */}
           <Link to="/my-orders" className="action-card-link action-card-link-full">
             <motion.div
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2, duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
+              transition={{ delay: 0.15, duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
               className="action-card action-card-neutral"
               whileTap={{ scale: 0.98 }}
-              style={{
-                background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(37, 99, 235, 0.1) 100%)',
-                border: '1px solid rgba(59, 130, 246, 0.3)'
-              }}
             >
               <div className="action-card-icon">
                 <ShoppingBag size={32} strokeWidth={2} />
@@ -631,30 +611,47 @@ const VirtyExchangeApp = () => {
             </motion.div>
           </Link>
 
-          {/* Admin Panel Button */}
+          {/* Админ – если есть */}
           {isAdmin && (
             <Link to="/admin" className="action-card-link action-card-link-full">
-              <motion.div
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.25, duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
-                className="action-card"
-                whileTap={{ scale: 0.98 }}
-                style={{
-                  background: 'linear-gradient(135deg, rgba(255, 149, 0, 0.15) 0%, rgba(255, 94, 0, 0.15) 100%)',
-                  border: '1px solid rgba(255, 149, 0, 0.4)'
-                }}
-              >
-                <div className="action-card-icon" style={{ background: 'rgba(255, 149, 0, 1)' }}>
-                  <Settings size={32} strokeWidth={2} />
-                </div>
-                <div className="action-card-content">
-                  <h3 className="action-card-title">Админ-панель</h3>
-                </div>
-                <ChevronRight size={22} strokeWidth={2} className="action-card-arrow" />
-              </motion.div>
+            <motion.div
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2, duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
+              className="action-card"
+              whileTap={{ scale: 0.98 }}
+            >
+              <div className="action-card-icon">
+                <Settings size={32} strokeWidth={2} />
+              </div>
+              <div className="action-card-content">
+                <h3 className="action-card-title">Админ-панель</h3>
+              </div>
+              <ChevronRight size={22} strokeWidth={2} className="action-card-arrow" />
+            </motion.div>
             </Link>
           )}
+        </div>
+
+        {/* Купить – как главный CTA снизу, на всю ширину */}
+        <div className="action-cards-grid" style={{ marginTop: 'auto' }}>
+          <Link to="/buy-virty" className="action-card-link action-card-link-full">
+            <motion.div
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.25, duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
+              className="action-card action-card-buy"
+              whileTap={{ scale: 0.98 }}
+            >
+              <div className="action-card-icon">
+                <TrendingUp size={32} strokeWidth={2} />
+              </div>
+              <div className="action-card-content">
+                <h3 className="action-card-title">Купить Вирты</h3>
+              </div>
+              <ChevronRight size={22} strokeWidth={2} className="action-card-arrow" />
+            </motion.div>
+          </Link>
         </div>
 
         {/* Stats Grid - Removed */}
@@ -964,10 +961,10 @@ const BuyVirtyFlow = () => {
     try {
       const { userId, username } = getCurrentUser();
 
-      // Create buy order (auto-approved)
-      const order = addBuyOrder({
+      // Create buy order through unified backend API
+      const order = await createOrder({
+        type: 'buy',
         serverId: server.id,
-        serverName: server.name,
         userId,
         username,
         amount,
@@ -1357,15 +1354,16 @@ const SellVirtyFlow = () => {
     try {
       const { userId, username } = getCurrentUser();
 
-      // Create sell order (needs approval)
-      const order = addSellOrder({
+      // Create sell order through unified backend API (requires approval)
+      const order = await createOrder({
+        type: 'sell',
         serverId: server.id,
-        serverName: server.name,
         userId,
         username,
         amount,
         totalPrice: parseFloat(totalPrice),
-        contact: contact || '@' + username
+        contact: contact || '@' + username,
+        refundEnabled: true
       });
 
       if (!order) {
