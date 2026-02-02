@@ -1,2 +1,2 @@
 web: cd backend && node server.js
-worker: cd bot && python telegram_bot_final.py
+worker: cd bot && python3 telegram_bot_final.py
