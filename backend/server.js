@@ -46,6 +46,39 @@ const writeDB = (data) => {
   }
 };
 
+const BOT_TOKEN = process.env.BOT_TOKEN || '';
+const ADMIN_USER_ID = process.env.ADMIN_USER_ID || '';
+
+const sendTelegramNotification = async (message) => {
+  if (!BOT_TOKEN || !ADMIN_USER_ID) {
+    console.warn('Telegram notification skipped: BOT_TOKEN or ADMIN_USER_ID not set');
+    return false;
+  }
+
+  try {
+    const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: ADMIN_USER_ID,
+        text: message,
+        parse_mode: 'HTML'
+      })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Telegram notification failed:', response.status, errorText);
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Telegram notification error:', error);
+    return false;
+  }
+};
+
 // GET /api/orders - Get all orders with optional filters
 app.get('/api/orders', (req, res) => {
   try {
@@ -82,7 +115,7 @@ app.get('/api/orders', (req, res) => {
 });
 
 // POST /api/orders - Create a new order
-app.post('/api/orders', (req, res) => {
+app.post('/api/orders', async (req, res) => {
   try {
     const db = readDB();
 
@@ -108,6 +141,18 @@ app.post('/api/orders', (req, res) => {
 
     if (writeDB(db)) {
       console.log(`Created order: ${newOrder.id} - ${newOrder.order_type} by @${newOrder.username}`);
+
+      const typeLabel = newOrder.order_type === 'buy' ? 'Покупка' : 'Продажа';
+      const message = `🧾 <b>Новая заявка</b>\n\n` +
+        `Тип: <b>${typeLabel}</b>\n` +
+        `Пользователь: @${newOrder.username || 'unknown'}\n` +
+        `Сервер: ${newOrder.server_name || '—'}\n` +
+        `Количество: ${newOrder.amount || 0}\n` +
+        `Сумма: ${newOrder.price || 0} ₽\n` +
+        `Источник: ${newOrder.source || 'webapp'}`;
+
+      await sendTelegramNotification(message);
+
       res.json(newOrder);
     } else {
       res.status(500).json({ error: 'Failed to save order' });
