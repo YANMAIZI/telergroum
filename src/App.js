@@ -738,39 +738,6 @@ const VirtyExchangeApp = () => {
 
       </div>
 
-      {/* Features at bottom */}
-      <motion.div
-        initial={{ y: 20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ delay: 0.4 }}
-        className="features-grid-bottom"
-      >
-        <div className="feature-item">
-          <div className="feature-icon">
-            <Zap className="w-5 h-5" />
-          </div>
-          <span className="feature-text">Быстрая передача</span>
-        </div>
-        <div className="feature-item">
-          <div className="feature-icon">
-            <Shield className="w-5 h-5" />
-          </div>
-          <span className="feature-text">Безопасно</span>
-        </div>
-        <div className="feature-item">
-          <div className="feature-icon">
-            <Users className="w-5 h-5" />
-          </div>
-          <span className="feature-text">Поддержка 24/7</span>
-        </div>
-        <div className="feature-item">
-          <div className="feature-icon">
-            <Gift className="w-5 h-5" />
-          </div>
-          <span className="feature-text">Бонусы</span>
-        </div>
-      </motion.div>
-
       {/* Refund Info Tooltip */}
       <AnimatePresence>
         {showRefundTooltip && (
@@ -2034,18 +2001,20 @@ const AdminPanel = () => {
     toast.success('Заявка отклонена');
   };
 
-  const handleEditPrice = async (order) => {
-    const newPriceRaw = window.prompt('Введите новую цену (₽):', String(order.totalPrice ?? ''));
-    if (!newPriceRaw) return;
-    const newPrice = Number(newPriceRaw.replace(',', '.'));
-    if (!Number.isFinite(newPrice) || newPrice <= 0) {
-      toast.error('Некорректная цена');
+  const handleEditAmount = async (order) => {
+    const currentAmountKK = (order.amount / 1000000).toFixed(1);
+    const newAmountRaw = window.prompt('Введите новое количество виртов (в млн):', currentAmountKK);
+    if (!newAmountRaw) return;
+    const newAmountKK = Number(newAmountRaw.replace(',', '.'));
+    if (!Number.isFinite(newAmountKK) || newAmountKK <= 0) {
+      toast.error('Некорректное количество');
       return;
     }
+    const newAmount = Math.round(newAmountKK * 1000000);
 
-    const updated = await updateOrder(order.id, { price: newPrice });
+    const updated = await updateOrder(order.id, { amount: newAmount });
     if (!updated) {
-      toast.error('Не удалось обновить цену');
+      toast.error('Не удалось обновить количество');
       return;
     }
 
@@ -2056,7 +2025,7 @@ const AdminPanel = () => {
       setSellOrders(prev => prev.map(o => o.id === order.id ? { ...o, ...normalizedOrder } : o));
     }
 
-    toast.success('Цена обновлена');
+    toast.success('Количество обновлено');
   };
 
   // Contact user
@@ -2166,8 +2135,8 @@ const AdminPanel = () => {
                         <button onClick={() => handleContactUser(order)} className="admin-btn contact">
                           <Users className="w-4 h-4" /> Связаться
                         </button>
-                        <button onClick={() => handleEditPrice(order)} className="admin-btn edit">
-                          <Edit className="w-4 h-4" /> Цена
+                        <button onClick={() => handleEditAmount(order)} className="admin-btn edit">
+                          <Edit className="w-4 h-4" /> Кол-во
                         </button>
                         <button onClick={() => handleApproveOrder(order.id)} className="admin-btn approve">
                           <Check className="w-4 h-4" /> Одобрить
@@ -2223,8 +2192,8 @@ const AdminPanel = () => {
                         <button onClick={() => handleContactUser(order)} className="admin-btn contact">
                           <Users className="w-4 h-4" /> Связаться
                         </button>
-                        <button onClick={() => handleEditPrice(order)} className="admin-btn edit">
-                          <Edit className="w-4 h-4" /> Цена
+                        <button onClick={() => handleEditAmount(order)} className="admin-btn edit">
+                          <Edit className="w-4 h-4" /> Кол-во
                         </button>
                         <button onClick={() => handleDeleteOrder('buy', order.id)} className="admin-btn delete">
                           <Trash2 className="w-4 h-4" /> Удалить
@@ -2275,8 +2244,8 @@ const AdminPanel = () => {
                         <button onClick={() => handleContactUser(order)} className="admin-btn contact">
                           <Users className="w-4 h-4" /> Связаться
                         </button>
-                        <button onClick={() => handleEditPrice(order)} className="admin-btn edit">
-                          <Edit className="w-4 h-4" /> Цена
+                        <button onClick={() => handleEditAmount(order)} className="admin-btn edit">
+                          <Edit className="w-4 h-4" /> Кол-во
                         </button>
                         <button onClick={() => handleDeleteOrder('sell', order.id)} className="admin-btn delete">
                           <Trash2 className="w-4 h-4" /> Удалить
@@ -2349,6 +2318,11 @@ function App() {
     wallpaper.src = '/phone_wallpaper.jpg';
     const gtaLogo = new Image();
     gtaLogo.src = '/gta_logo_new.jpg';
+
+    // Redirect to home screen if not already there
+    if (window.location.pathname !== '/' && !sessionStorage.getItem('virty-entry-allowed')) {
+      window.location.href = '/';
+    }
   }, []);
 
   return (
