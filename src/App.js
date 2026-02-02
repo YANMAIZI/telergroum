@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { BrowserRouter, Routes, Route, useNavigate, useParams, useLocation, Link } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useNavigate, useParams, useLocation, Link, Navigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft, Star, ShoppingBag, TrendingUp, TrendingDown,
@@ -435,7 +435,10 @@ const PhoneHomeScreen = () => {
             delay: 0.1
           }}
           className="app-icon app-icon-special"
-          onClick={() => navigate('/virty-app')}
+          onClick={() => {
+            sessionStorage.setItem('virty-entry-allowed', '1');
+            navigate('/virty-app');
+          }}
         >
           <div className="app-icon-bg bg-transparent shadow-none relative overflow-hidden">
             <motion.img
@@ -1849,12 +1852,19 @@ const AdminPanel = () => {
     }
   }, [isAdmin, navigate]);
 
-  // Load orders from localStorage
+  const normalizeOrder = (order) => ({
+    ...order,
+    serverName: order.server_name || order.serverName,
+    totalPrice: order.price ?? order.totalPrice,
+    refundEnabled: order.refund_enabled ?? order.refundEnabled,
+  });
+
+  // Load orders from API
   useEffect(() => {
-    const loadOrders = () => {
-      const orders = getOrders();
-      setBuyOrders(orders.buyOrders || []);
-      setSellOrders(orders.sellOrders || []);
+    const loadOrders = async () => {
+      const orders = await getOrders();
+      setBuyOrders((orders.buyOrders || []).map(normalizeOrder));
+      setSellOrders((orders.sellOrders || []).map(normalizeOrder));
       setLoading(false);
     };
 
@@ -1874,10 +1884,14 @@ const AdminPanel = () => {
   const approvedSellOrders = sellOrders.filter(o => o.status === 'approved');
 
   // Delete order
-  const handleDeleteOrder = (type, id) => {
+  const handleDeleteOrder = async (type, id) => {
     if (!window.confirm('Удалить эту заявку?')) return;
 
-    deleteOrder(type, id);
+    const ok = await deleteOrder(id);
+    if (!ok) {
+      toast.error('Не удалось удалить заявку');
+      return;
+    }
 
     if (type === 'buy') {
       setBuyOrders(prev => prev.filter(o => o.id !== id));
@@ -1890,24 +1904,28 @@ const AdminPanel = () => {
 
   // Approve sell order
   const handleApproveOrder = async (id) => {
-    const order = approveSellOrder(id);
-    if (order) {
-      setSellOrders(prev => prev.map(o =>
-        o.id === id ? { ...o, status: 'approved' } : o
-      ));
-
-      // Notify seller
-      await sendTelegramNotification(
-        `✅ <b>Заявка на продажу ОДОБРЕНА</b>\n\n` +
-        `👤 Продавец: @${order.username}\n` +
-        `🎮 Сервер: ${order.serverName}\n` +
-        `💰 Количество: ${formatAmount(order.amount)}\n` +
-        `💵 К выплате: ${order.totalPrice} ₽\n\n` +
-        `Теперь заявка видна покупателям!`
-      );
-
-      toast.success('Заявка одобрена и видна покупателям');
+    const order = await approveSellOrder(id);
+    if (!order) {
+      toast.error('Не удалось одобрить заявку');
+      return;
     }
+
+    const normalizedOrder = normalizeOrder(order);
+    setSellOrders(prev => prev.map(o =>
+      o.id === id ? { ...o, status: 'approved', ...normalizedOrder } : o
+    ));
+
+    // Notify seller
+    await sendTelegramNotification(
+      `✅ <b>Заявка на продажу ОДОБРЕНА</b>\n\n` +
+      `👤 Продавец: @${normalizedOrder.username}\n` +
+      `🎮 Сервер: ${normalizedOrder.serverName}\n` +
+      `💰 Количество: ${formatAmount(normalizedOrder.amount)}\n` +
+      `💵 К выплате: ${normalizedOrder.totalPrice} ₽\n\n` +
+      `Теперь заявка видна покупателям!`
+    );
+
+    toast.success('Заявка одобрена и видна покупателям');
   };
 
   // Reject sell order (just delete)
@@ -1915,8 +1933,15 @@ const AdminPanel = () => {
     const order = sellOrders.find(o => o.id === id);
     if (!order) return;
 
-    deleteOrder('sell', id);
-    setSellOrders(prev => prev.filter(o => o.id !== id));
+    const rejected = await rejectSellOrder(id);
+    if (!rejected) {
+      toast.error('Не удалось отклонить заявку');
+      return;
+    }
+
+    setSellOrders(prev => prev.map(o =>
+      o.id === id ? { ...o, status: 'rejected' } : o
+    ));
 
     await sendTelegramNotification(
       `❌ <b>Заявка на продажу ОТКЛОНЕНА</b>\n\n` +
@@ -1926,6 +1951,31 @@ const AdminPanel = () => {
     );
 
     toast.success('Заявка отклонена');
+  };
+
+  const handleEditPrice = async (order) => {
+    const newPriceRaw = window.prompt('Введите новую цену (₽):', String(order.totalPrice ?? ''));
+    if (!newPriceRaw) return;
+    const newPrice = Number(newPriceRaw.replace(',', '.'));
+    if (!Number.isFinite(newPrice) || newPrice <= 0) {
+      toast.error('Некорректная цена');
+      return;
+    }
+
+    const updated = await updateOrder(order.id, { price: newPrice });
+    if (!updated) {
+      toast.error('Не удалось обновить цену');
+      return;
+    }
+
+    const normalizedOrder = normalizeOrder(updated);
+    if (normalizedOrder.order_type === 'buy') {
+      setBuyOrders(prev => prev.map(o => o.id === order.id ? { ...o, ...normalizedOrder } : o));
+    } else {
+      setSellOrders(prev => prev.map(o => o.id === order.id ? { ...o, ...normalizedOrder } : o));
+    }
+
+    toast.success('Цена обновлена');
   };
 
   // Contact user
@@ -2035,6 +2085,9 @@ const AdminPanel = () => {
                         <button onClick={() => handleContactUser(order)} className="admin-btn contact">
                           <Users className="w-4 h-4" /> Связаться
                         </button>
+                        <button onClick={() => handleEditPrice(order)} className="admin-btn edit">
+                          <Edit className="w-4 h-4" /> Цена
+                        </button>
                         <button onClick={() => handleApproveOrder(order.id)} className="admin-btn approve">
                           <Check className="w-4 h-4" /> Одобрить
                         </button>
@@ -2089,6 +2142,9 @@ const AdminPanel = () => {
                         <button onClick={() => handleContactUser(order)} className="admin-btn contact">
                           <Users className="w-4 h-4" /> Связаться
                         </button>
+                        <button onClick={() => handleEditPrice(order)} className="admin-btn edit">
+                          <Edit className="w-4 h-4" /> Цена
+                        </button>
                         <button onClick={() => handleDeleteOrder('buy', order.id)} className="admin-btn delete">
                           <Trash2 className="w-4 h-4" /> Удалить
                         </button>
@@ -2138,6 +2194,9 @@ const AdminPanel = () => {
                         <button onClick={() => handleContactUser(order)} className="admin-btn contact">
                           <Users className="w-4 h-4" /> Связаться
                         </button>
+                        <button onClick={() => handleEditPrice(order)} className="admin-btn edit">
+                          <Edit className="w-4 h-4" /> Цена
+                        </button>
                         <button onClick={() => handleDeleteOrder('sell', order.id)} className="admin-btn delete">
                           <Trash2 className="w-4 h-4" /> Удалить
                         </button>
@@ -2162,7 +2221,14 @@ function AppRoutes() {
       <AnimatePresence mode="wait">
         <Routes location={location} key={location.pathname}>
           <Route path="/" element={<PhoneHomeScreen />} />
-          <Route path="/virty-app" element={<VirtyExchangeApp />} />
+          <Route
+            path="/virty-app"
+            element={
+              sessionStorage.getItem('virty-entry-allowed') === '1'
+                ? <VirtyExchangeApp />
+                : <Navigate to="/" replace />
+            }
+          />
           <Route path="/buy-virty" element={<ServerSelection type="buy" />} />
           <Route path="/sell-virty" element={<ServerSelection type="sell" />} />
           <Route path="/buy-virty/server/:id" element={<BuyVirtyFlow />} />
@@ -2197,6 +2263,11 @@ function App() {
       tg.ready();
       tg.expand();
     }
+
+    const wallpaper = new Image();
+    wallpaper.src = '/phone_wallpaper.jpg';
+    const gtaLogo = new Image();
+    gtaLogo.src = '/gta_logo_new.jpg';
   }, []);
 
   return (
