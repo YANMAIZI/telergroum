@@ -55,7 +55,11 @@ class ErrorBoundary extends React.Component {
 const ADMIN_USERNAME = process.env.REACT_APP_ADMIN_USERNAME || 'patrickprodast';
 const BOT_TOKEN = process.env.REACT_APP_BOT_TOKEN || '';
 const ADMIN_CHAT_ID = process.env.REACT_APP_ADMIN_CHAT_ID || '';
-const API = process.env.REACT_APP_BACKEND_URL || '';
+
+// Backend API URL: сначала переменная окружения, иначе относительный /api
+const API =
+  process.env.REACT_APP_BACKEND_URL ||
+  (typeof window !== 'undefined' ? `${window.location.origin}/api` : '');
 
 // Safe API call wrapper with error handling
 const safeApiCall = async (apiFunction) => {
@@ -335,12 +339,30 @@ const notifyNewSellOrder = async (order, serverName) => {
 
 const getCurrentUser = () => {
   const tg = window.Telegram?.WebApp;
-  return {
+  const user = {
     userId: tg?.initDataUnsafe?.user?.id?.toString() || 'demo123',
     username: tg?.initDataUnsafe?.user?.username || 'demo_user',
     firstName: tg?.initDataUnsafe?.user?.first_name || 'Пользователь',
     isAdmin: (tg?.initDataUnsafe?.user?.username || 'demo_user') === ADMIN_USERNAME
   };
+
+  // Запоминаем пользователя локально для стабильной идентификации
+  try {
+    if (tg?.initDataUnsafe?.user) {
+      localStorage.setItem(
+        'tg_user',
+        JSON.stringify({
+          id: user.userId,
+          username: user.username,
+          firstName: user.firstName,
+        }),
+      );
+    }
+  } catch {
+    // localStorage может быть недоступен — просто игнорируем
+  }
+
+  return user;
 };
 
 // Status Bar Component - Now Fixed
@@ -571,14 +593,31 @@ const VirtyExchangeApp = () => {
           <h2 className="virty-welcome-modern">Магазин виртов Патрика</h2>
         </motion.div>
 
-        {/* Action Cards */}
+        {/* Action Cards – две главные кнопки подряд, на всю ширину */}
         <div className="action-cards-grid">
-          {/* Продать – сверху, на всю ширину */}
-          <Link to="/sell-virty" className="action-card-link action-card-link-full">
+          <Link to="/buy-virty" className="action-card-link action-card-link-full">
             <motion.div
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1, duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
+              className="action-card action-card-buy"
+              whileTap={{ scale: 0.98 }}
+            >
+              <div className="action-card-icon">
+                <TrendingUp size={32} strokeWidth={2} />
+              </div>
+              <div className="action-card-content">
+                <h3 className="action-card-title">Купить Вирты</h3>
+              </div>
+              <ChevronRight size={22} strokeWidth={2} className="action-card-arrow" />
+            </motion.div>
+          </Link>
+
+          <Link to="/sell-virty" className="action-card-link action-card-link-full">
+            <motion.div
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.15, duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
               className="action-card action-card-sell"
               whileTap={{ scale: 0.98 }}
             >
@@ -592,12 +631,11 @@ const VirtyExchangeApp = () => {
             </motion.div>
           </Link>
 
-          {/* Мои заявки – по центру */}
           <Link to="/my-orders" className="action-card-link action-card-link-full">
             <motion.div
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.15, duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
+              transition={{ delay: 0.2, duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
               className="action-card action-card-neutral"
               whileTap={{ scale: 0.98 }}
             >
@@ -605,53 +643,31 @@ const VirtyExchangeApp = () => {
                 <ShoppingBag size={32} strokeWidth={2} />
               </div>
               <div className="action-card-content">
-                <h3 className="action-card-title">Мои Заявки</h3>
+                <h3 className="action-card-title">Мои заявки</h3>
               </div>
               <ChevronRight size={22} strokeWidth={2} className="action-card-arrow" />
             </motion.div>
           </Link>
 
-          {/* Админ – если есть */}
           {isAdmin && (
             <Link to="/admin" className="action-card-link action-card-link-full">
-            <motion.div
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2, duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
-              className="action-card"
-              whileTap={{ scale: 0.98 }}
-            >
-              <div className="action-card-icon">
-                <Settings size={32} strokeWidth={2} />
-              </div>
-              <div className="action-card-content">
-                <h3 className="action-card-title">Админ-панель</h3>
-              </div>
-              <ChevronRight size={22} strokeWidth={2} className="action-card-arrow" />
-            </motion.div>
+              <motion.div
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.25, duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
+                className="action-card"
+                whileTap={{ scale: 0.98 }}
+              >
+                <div className="action-card-icon">
+                  <Settings size={32} strokeWidth={2} />
+                </div>
+                <div className="action-card-content">
+                  <h3 className="action-card-title">Админ-панель</h3>
+                </div>
+                <ChevronRight size={22} strokeWidth={2} className="action-card-arrow" />
+              </motion.div>
             </Link>
           )}
-        </div>
-
-        {/* Купить – как главный CTA снизу, на всю ширину */}
-        <div className="action-cards-grid" style={{ marginTop: 'auto' }}>
-          <Link to="/buy-virty" className="action-card-link action-card-link-full">
-            <motion.div
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.25, duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
-              className="action-card action-card-buy"
-              whileTap={{ scale: 0.98 }}
-            >
-              <div className="action-card-icon">
-                <TrendingUp size={32} strokeWidth={2} />
-              </div>
-              <div className="action-card-content">
-                <h3 className="action-card-title">Купить Вирты</h3>
-              </div>
-              <ChevronRight size={22} strokeWidth={2} className="action-card-arrow" />
-            </motion.div>
-          </Link>
         </div>
 
         {/* Stats Grid - Removed */}
