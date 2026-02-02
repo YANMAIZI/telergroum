@@ -36,13 +36,13 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Конфигурация
-BOT_TOKEN = os.getenv("BOT_TOKEN", "").strip()
+BOT_TOKEN = os.getenv("BOT_TOKEN", "")
 CHANNEL_ID = -1003778829727
 SUPPORT_USERNAME = "patrickprodast"
 ADMIN_USER_ID = 7858974852
 
 # Backend API URL - должен быть установлен в Railway
-API_BASE_URL = os.getenv("API_BASE_URL", "").strip()
+API_BASE_URL = os.getenv("API_BASE_URL", "")
 
 # Проверка обязательных переменных окружения
 if not BOT_TOKEN:
