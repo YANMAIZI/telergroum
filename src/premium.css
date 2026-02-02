@@ -1,0 +1,231 @@
+/* STRICT LUXURY MINIMALISM (2026 Fintech Style) */
+
+/* Core Reset & Base */
+.virty-app-container {
+    background: #000000 !important;
+}
+
+body {
+    background: #000000 !important;
+    color: #ffffff !important;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif !important;
+}
+
+/* ========================================
+   TYPOGRAPHY
+   ======================================== */
+.virty-app-title {
+    font-size: 24px !important;
+    font-weight: 600 !important;
+    letter-spacing: -0.02em !important;
+    background: none !important;
+    -webkit-text-fill-color: #ffffff !important;
+    color: #ffffff !important;
+}
+
+.price-label-modern,
+.stat-text,
+.server-badge-modern {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif !important;
+    letter-spacing: 0.01em !important;
+}
+
+/* ========================================
+   COMPONENTS
+   ======================================== */
+
+/* ACTION CARDS - Solid, Matte, Expensive */
+.action-card {
+    background: #111111 !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    border-radius: 20px !important;
+    backdrop-filter: none !important;
+    box-shadow: none !important;
+    animation: none !important;
+    /* Kill float */
+    transform: none !important;
+    transition: transform 0.1s ease, background-color 0.2s ease !important;
+}
+
+.action-card:active {
+    transform: scale(0.98) !important;
+}
+
+.action-card:hover {
+    background: #161616 !important;
+    border-color: rgba(255, 255, 255, 0.15) !important;
+    transform: none !important;
+}
+
+.action-card-icon {
+    background: #1a1a1a !important;
+    border: 1px solid rgba(255, 255, 255, 0.05) !important;
+    box-shadow: none !important;
+    color: #ffffff !important;
+    border-radius: 14px !important;
+}
+
+/* SERVER CARDS - The Centerpiece */
+.server-card-modern {
+    background: #0a0a0a !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    /* Subtle separation */
+    border-radius: 22px !important;
+    padding: 20px !important;
+    margin-bottom: 12px !important;
+
+    /* Kill all gimmicks */
+    animation: none !important;
+    backdrop-filter: none !important;
+    box-shadow: none !important;
+    transition: background-color 0.2s ease, transform 0.1s ease !important;
+}
+
+.server-card-modern:active {
+    transform: scale(0.98) !important;
+    background: #111111 !important;
+}
+
+.server-card-modern:hover {
+    background: #111111 !important;
+    border-color: rgba(255, 255, 255, 0.15) !important;
+    transform: none !important;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5) !important;
+    /* Deep subtle shadow only on hover */
+}
+
+/* Remove internal gradient/glow divs */
+.server-card-bg {
+    display: none !important;
+}
+
+/* Header & Text in Card */
+.server-name-modern {
+    font-size: 17px !important;
+    font-weight: 600 !important;
+    color: #ffffff !important;
+    letter-spacing: -0.01em !important;
+}
+
+.server-badge-modern {
+    background: rgba(255, 255, 255, 0.1) !important;
+    color: #cccccc !important;
+    border: none !important;
+    font-weight: 500 !important;
+    font-size: 11px !important;
+    padding: 4px 10px !important;
+    letter-spacing: 0.02em !important;
+}
+
+/* Pricing - Clean and Sharp */
+.price-value-modern {
+    font-size: 18px !important;
+    font-weight: 600 !important;
+    color: #ffffff !important;
+    background: none !important;
+    -webkit-text-fill-color: #ffffff !important;
+    font-variant-numeric: tabular-nums !important;
+}
+
+.price-label-modern {
+    color: #666666 !important;
+    font-size: 12px !important;
+    font-weight: 500 !important;
+}
+
+/* Stats Area - Separated and Clear */
+.server-stats {
+    border-top: 1px solid rgba(255, 255, 255, 0.05) !important;
+    margin-top: 16px !important;
+    padding-top: 16px !important;
+    gap: 10px !important;
+}
+
+.stat-item {
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+}
+
+.stat-icon {
+    font-size: 12px !important;
+    /* Smaller, clearer icons */
+    opacity: 0.7 !important;
+    filter: grayscale(100%) !important;
+    /* Make emojis monochrome */
+}
+
+.stat-text {
+    color: #888888 !important;
+    font-size: 13px !important;
+    font-weight: 400 !important;
+}
+
+/* Search Input - Matte Finish */
+.search-input {
+    background: #111111 !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    border-radius: 16px !important;
+    color: #ffffff !important;
+    font-size: 15px !important;
+    height: 48px !important;
+    backdrop-filter: none !important;
+}
+
+.search-input:focus {
+    border-color: #ffffff !important;
+    /* High contrast active state */
+    background: #161616 !important;
+    box-shadow: 0 0 0 1px #ffffff !important;
+    /* Sharp focus ring */
+}
+
+/* Headers & Navigation */
+.virty-app-header-enhanced {
+    background: rgba(0, 0, 0, 0.8) !important;
+    backdrop-filter: blur(20px) !important;
+    /* Functional blur only for header */
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+    box-shadow: none !important;
+}
+
+.virty-back-btn {
+    background: #1a1a1a !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    color: #ffffff !important;
+}
+
+/* Sort Buttons - Pill shape */
+.sort-btn {
+    background: #111111 !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    border-radius: 100px !important;
+    /* Pill shape */
+    padding: 8px 16px !important;
+    color: #888888 !important;
+    font-weight: 500 !important;
+    font-size: 13px !important;
+    backdrop-filter: none !important;
+    box-shadow: none !important;
+}
+
+.sort-btn-active {
+    background: #ffffff !important;
+    color: #000000 !important;
+    border-color: #ffffff !important;
+}
+
+/* Arrow Icons */
+.action-card-arrow,
+.server-arrow {
+    color: #444444 !important;
+}
+
+/* Layout Tweaks */
+.app-container {
+    padding: 0 16px !important;
+}
+
+.server-list-modern {
+    gap: 12px !important;
+}

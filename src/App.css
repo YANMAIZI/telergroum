@@ -1,0 +1,1438 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Segoe UI', 'Roboto', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: #000000;
+  color: #ffffff;
+  overflow: hidden;
+  touch-action: manipulation;
+}
+
+/* iOS-like smooth transitions globally */
+*, *::before, *::after {
+  transition-timing-function: cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', 'Roboto', sans-serif;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+/* ========================================
+   PHONE FRAME - iOS Style
+   ======================================== */
+.phone-frame {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #000000;
+  padding: 20px;
+}
+
+.phone-screen {
+  width: 100%;
+  max-width: 430px;
+  height: 100%;
+  max-height: 932px;
+  background: #000000;
+  border-radius: 55px;
+  overflow: hidden;
+  position: relative;
+  box-shadow: 0 0 0 8px #1c1c1e, 0 50px 100px rgba(0, 0, 0, 0.8);
+}
+
+/* ========================================
+   STATUS BAR - iOS Style
+   ======================================== */
+.phone-status-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 54px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 30px;
+  background: transparent;
+  z-index: 100;
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.status-notch {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 150px;
+  height: 30px;
+  background: #000000;
+  border-radius: 0 0 20px 20px;
+}
+
+.status-left,
+.status-right {
+  z-index: 101;
+}
+
+.status-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.status-signal,
+.status-wifi {
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.status-battery {
+  width: 25px;
+  height: 12px;
+  border: 1.5px solid rgba(255, 255, 255, 0.6);
+  border-radius: 4px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  padding: 1.5px;
+}
+
+.status-battery::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: -3px;
+  transform: translateY(-50%);
+  width: 2px;
+  height: 5px;
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: 0 1px 1px 0;
+}
+
+.status-battery-level {
+  width: 100%;
+  height: 100%;
+  background: #ffffff;
+  border-radius: 2px;
+}
+
+/* ========================================
+   HOME SCREEN - iOS Style
+   ======================================== */
+.phone-home-screen {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(180deg, #1c1c1e 0%, #000000 100%);
+  padding-top: 60px;
+  position: relative;
+}
+
+.app-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 24px;
+  padding: 40px 30px;
+  max-width: 430px;
+  margin: 0 auto;
+}
+
+.app-icon {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.app-icon-bg {
+  width: 70px;
+  height: 70px;
+  border-radius: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.app-icon-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 18px;
+}
+
+.app-name {
+  font-size: 12px;
+  font-weight: 500;
+  color: #ffffff;
+  text-align: center;
+  max-width: 70px;
+}
+
+/* ========================================
+   PHONE DOCK - iOS Style
+   ======================================== */
+.phone-dock {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 22px;
+  padding: 14px 24px;
+  background: rgba(30, 30, 30, 0.8);
+  backdrop-filter: blur(40px) saturate(180%);
+  border-radius: 28px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+}
+
+.dock-icon {
+  width: 60px;
+  height: 60px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* ========================================
+   APP CONTAINER - iOS Blur Style
+   ======================================== */
+.virty-app-container {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(180deg, #1c1c1e 0%, #000000 100%);
+  overflow-y: auto;
+  overflow-x: hidden;
+  position: relative;
+}
+
+/* ========================================
+   HEADER - iOS Navigation Bar
+   ======================================== */
+.virty-app-header-enhanced {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 60px 20px 20px;
+  background: rgba(28, 28, 30, 0.8);
+  backdrop-filter: blur(40px) saturate(180%);
+  border-bottom: 0.5px solid rgba(255, 255, 255, 0.1);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.virty-back-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border: none;
+  flex-shrink: 0;
+}
+
+.virty-app-title {
+  font-size: 17px;
+  font-weight: 600;
+  color: #ffffff;
+  letter-spacing: -0.4px;
+  flex: 1;
+  text-align: center;
+}
+
+/* ========================================
+   CONTENT AREA
+   ======================================== */
+.virty-app-content {
+  padding: 20px;
+}
+
+.virty-hero-section {
+  text-align: center;
+  padding: 20px 0 30px;
+}
+
+.virty-welcome-modern {
+  font-size: 28px;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0;
+  letter-spacing: -0.6px;
+}
+
+/* ========================================
+   ACTION CARDS - iOS Cards
+   ======================================== */
+.action-cards-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 30px;
+}
+
+.action-card-link {
+  text-decoration: none;
+  color: inherit;
+}
+
+.action-card-link-full {
+  grid-column: 1 / -1;
+}
+
+.action-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(40px) saturate(180%);
+  border-radius: 16px;
+  cursor: pointer;
+  border: 0.5px solid rgba(255, 255, 255, 0.15);
+}
+
+.action-card-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #ffffff;
+}
+
+.action-card-buy .action-card-icon {
+  background: rgba(52, 199, 89, 1);
+}
+
+.action-card-sell .action-card-icon {
+  background: rgba(255, 69, 58, 1);
+}
+
+.action-card-content {
+  flex: 1;
+}
+
+.action-card-title {
+  font-size: 17px;
+  font-weight: 600;
+  color: #ffffff;
+  margin: 0;
+  letter-spacing: -0.4px;
+}
+
+.action-card-arrow {
+  width: 20px;
+  height: 20px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.action-card-glow {
+  display: none;
+}
+
+/* ========================================
+   STATS GRID - iOS Style
+   ======================================== */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 30px;
+}
+
+.stat-card {
+  padding: 18px 14px;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(40px) saturate(180%);
+  border-radius: 14px;
+  text-align: center;
+  border: 0.5px solid rgba(255, 255, 255, 0.15);
+}
+
+.stat-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: #ffffff;
+  display: block;
+  margin-bottom: 4px;
+  letter-spacing: -0.5px;
+}
+
+.stat-label {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.6);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+
+/* ========================================
+   FEATURES - iOS Style
+   ======================================== */
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.features-grid-bottom {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  padding: 20px;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.95) 0%, rgba(0, 0, 0, 0.8) 50%, transparent 100%);
+  padding-bottom: 30px;
+}
+
+.feature-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(40px) saturate(180%);
+  border-radius: 14px;
+  border: 0.5px solid rgba(255, 255, 255, 0.15);
+}
+
+.feature-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #ffffff;
+}
+
+.feature-text {
+  font-size: 13px;
+  font-weight: 500;
+  color: #ffffff;
+  line-height: 1.4;
+}
+
+/* ========================================
+   SEARCH & FILTER - iOS Style
+   ======================================== */
+.search-filter-section {
+  margin-bottom: 20px;
+}
+
+.search-box {
+  display: flex;
+  align-items: center;
+  position: relative;
+  margin-bottom: 12px;
+  min-height: 48px;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(40px) saturate(180%);
+  border: 0.5px solid rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  padding: 0 12px;
+  gap: 10px;
+}
+
+.search-icon-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.search-icon {
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
+  min-height: 20px;
+  color: inherit;
+}
+
+.search-input {
+  flex: 1;
+  min-width: 0;
+  padding: 12px 0;
+  background: transparent;
+  border: none;
+  color: #ffffff;
+  font-size: 16px;
+  outline: none;
+}
+
+.search-input::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.search-clear {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  border: none;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.sort-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.sort-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(40px) saturate(180%);
+  border: 0.5px solid rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.sort-btn-active {
+  background: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+/* ========================================
+   SERVER LIST - iOS Cards
+   ======================================== */
+.server-list-modern {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.server-card-link {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+}
+
+.server-card-modern {
+  padding: 18px;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(40px) saturate(180%);
+  border-radius: 16px;
+  cursor: pointer;
+  border: 0.5px solid rgba(255, 255, 255, 0.15);
+  position: relative;
+  overflow: hidden;
+}
+
+.server-card-header-modern {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.server-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.server-name-modern {
+  font-size: 17px;
+  font-weight: 600;
+  color: #ffffff;
+  margin: 0;
+  letter-spacing: -0.4px;
+}
+
+.server-stats-static {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.55);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.server-badge-modern {
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
+.badge-buy {
+  background: rgba(52, 199, 89, 0.2);
+  color: rgb(52, 199, 89);
+}
+
+.badge-sell {
+  background: rgba(255, 69, 58, 0.2);
+  color: rgb(255, 69, 58);
+}
+
+.server-arrow {
+  width: 20px;
+  height: 20px;
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.server-pricing-modern {
+  margin-bottom: 12px;
+}
+
+.price-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.price-label-modern {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+  font-weight: 500;
+}
+
+.price-value-modern {
+  font-size: 22px;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: -0.5px;
+}
+
+.server-stats {
+  display: flex;
+  gap: 12px;
+}
+
+.stat-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.stat-icon {
+  font-size: 14px;
+}
+
+.stat-text {
+  font-weight: 500;
+}
+
+.server-card-bg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+}
+
+.no-results {
+  text-align: center;
+  padding: 60px 20px;
+}
+
+/* ========================================
+   TRANSACTION FORMS - iOS Style
+   ======================================== */
+.server-info-card {
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(40px) saturate(180%);
+  border-radius: 16px;
+  margin-bottom: 20px;
+  border: 0.5px solid rgba(255, 255, 255, 0.15);
+}
+
+.server-info-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.server-info-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.server-info-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #ffffff;
+  letter-spacing: -0.4px;
+  margin: 0;
+}
+
+.server-info-header .server-stats-static {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.server-info-badge {
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.server-info-price {
+  text-align: center;
+}
+
+.price-main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.price-value-large {
+  font-size: 36px;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: -1px;
+}
+
+.price-unit {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.6);
+  font-weight: 500;
+}
+
+.transaction-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.form-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.form-label-modern {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.form-input-modern {
+  padding: 14px 16px;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(40px) saturate(180%);
+  border: 0.5px solid rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  color: #ffffff;
+  font-size: 16px;
+  outline: none;
+}
+
+.form-input-modern:focus {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.form-input-modern::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.form-hint-modern {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* ========================================
+   SLIDER - iOS Style
+   ======================================== */
+.slider-container {
+  margin: 20px 0;
+  padding: 24px;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(40px) saturate(180%);
+  border: 0.5px solid rgba(255, 255, 255, 0.15);
+  border-radius: 16px;
+}
+
+.slider-value-display {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 24px;
+  gap: 4px;
+}
+
+.modern-slider {
+  width: 100%;
+  height: 4px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+  outline: none;
+  cursor: pointer;
+}
+
+.modern-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 28px;
+  height: 28px;
+  background: #ffffff;
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.modern-slider::-moz-range-thumb {
+  width: 28px;
+  height: 28px;
+  background: #ffffff;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.modern-slider-sell {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.slider-labels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 10px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* ========================================
+   QUICK AMOUNTS - iOS Pills
+   ======================================== */
+.quick-amounts {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.quick-amount-btn {
+  padding: 10px 16px;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(40px) saturate(180%);
+  border: 0.5px solid rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.quick-amount-btn.active {
+  background: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+/* ========================================
+   TOTAL CARD - iOS Summary
+   ======================================== */
+.total-card {
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(40px) saturate(180%);
+  border-radius: 16px;
+  border: 0.5px solid rgba(255, 255, 255, 0.2);
+}
+
+.total-card-sell {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.total-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.total-label {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.total-amount {
+  margin-bottom: 8px;
+}
+
+.total-value-large {
+  font-size: 40px;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: -1.5px;
+}
+
+.total-breakdown {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.6);
+  text-align: center;
+}
+
+.breakdown-text {
+  font-weight: 500;
+}
+
+/* ========================================
+   SUBMIT BUTTON - iOS Style
+   ======================================== */
+.submit-btn-modern {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px;
+  border-radius: 14px;
+  border: none;
+  font-size: 17px;
+  font-weight: 600;
+  color: #ffffff;
+  cursor: pointer;
+  letter-spacing: -0.4px;
+}
+
+.submit-btn-modern:disabled {
+  opacity: 0.5;
+}
+
+.submit-btn-buy {
+  background: rgba(52, 199, 89, 1);
+}
+
+.submit-btn-sell {
+  background: rgba(255, 69, 58, 1);
+}
+
+/* ========================================
+   INFO NOTE - iOS Alert Style
+   ======================================== */
+.info-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 14px;
+  background: rgba(10, 132, 255, 0.15);
+  backdrop-filter: blur(40px) saturate(180%);
+  border-radius: 12px;
+  border: 0.5px solid rgba(10, 132, 255, 0.3);
+}
+
+.info-note-text {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.8);
+  line-height: 1.5;
+}
+
+/* ========================================
+   SUCCESS SCREEN
+   ======================================== */
+.success-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 60px 40px;
+  text-align: center;
+}
+
+.success-details {
+  width: 100%;
+  max-width: 300px;
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(40px) saturate(180%);
+  border: 0.5px solid rgba(255, 255, 255, 0.15);
+  border-radius: 16px;
+  margin-top: 24px;
+}
+
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 0.5px solid rgba(255, 255, 255, 0.1);
+}
+
+.detail-row:last-child {
+  border-bottom: none;
+}
+
+.detail-label {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.6);
+  font-weight: 500;
+}
+
+.detail-value {
+  font-size: 15px;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+/* ========================================
+   SCROLLBAR - iOS Style
+   ======================================== */
+::-webkit-scrollbar {
+  width: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 2px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* ========================================
+   MISC
+   ======================================== */
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type=number] {
+  -moz-appearance: textfield;
+}
+
+/* ========================================
+   REFUND TOGGLE - iOS Switch Style
+   ======================================== */
+.refund-toggle-card {
+  padding: 18px;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(40px) saturate(180%);
+  border-radius: 16px;
+  border: 0.5px solid rgba(255, 255, 255, 0.15);
+}
+
+.refund-toggle-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.refund-toggle-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
+.refund-toggle-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #ffffff;
+  margin: 0 0 2px 0;
+  letter-spacing: -0.3px;
+}
+
+.refund-toggle-subtitle {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+  margin: 0;
+}
+
+.refund-toggle-switch {
+  width: 51px;
+  height: 31px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 16px;
+  border: none;
+  position: relative;
+  cursor: pointer;
+  transition: background 0.3s;
+  flex-shrink: 0;
+}
+
+.refund-toggle-switch.active {
+  background: rgba(52, 199, 89, 1);
+}
+
+.refund-toggle-slider {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 27px;
+  height: 27px;
+  background: #ffffff;
+  border-radius: 50%;
+  transition: transform 0.3s;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.refund-toggle-switch.active .refund-toggle-slider {
+  transform: translateX(20px);
+}
+
+.refund-discount-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 0.5px solid rgba(255, 255, 255, 0.1);
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(52, 199, 89, 1);
+}
+
+/* ========================================
+   REFUND TOOLTIP - iOS Modal Style
+   ======================================== */
+.refund-tooltip-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(10px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.refund-tooltip-content {
+  width: 100%;
+  max-width: 380px;
+  max-height: 80vh;
+  background: rgba(28, 28, 30, 0.95);
+  backdrop-filter: blur(40px) saturate(180%);
+  border-radius: 20px;
+  border: 0.5px solid rgba(255, 255, 255, 0.15);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.refund-tooltip-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 24px 24px 16px;
+  border-bottom: 0.5px solid rgba(255, 255, 255, 0.1);
+}
+
+.refund-tooltip-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0;
+  letter-spacing: -0.4px;
+}
+
+.refund-tooltip-body {
+  padding: 20px 24px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.refund-tooltip-text {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.8);
+  line-height: 1.6;
+  margin-bottom: 14px;
+}
+
+.refund-tooltip-text strong {
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.refund-tooltip-list {
+  margin: 12px 0;
+  padding-left: 20px;
+}
+
+.refund-tooltip-list li {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.8);
+  line-height: 1.6;
+  margin-bottom: 12px;
+}
+
+.refund-tooltip-close {
+  margin: 0 24px 24px;
+  padding: 14px;
+  background: rgba(10, 132, 255, 1);
+  border: none;
+  border-radius: 12px;
+  color: #ffffff;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  letter-spacing: -0.3px;
+}
+
+/* ========================================
+   RESPONSIVE
+   ======================================== */
+@media (max-width: 480px) {
+  .phone-frame {
+    padding: 0;
+  }
+
+  .phone-screen {
+    max-width: 100vw;
+    max-height: 100vh;
+    border-radius: 0;
+    box-shadow: none;
+  }
+}
+
+/* ========================================
+   ADMIN PANEL - iOS Style
+   ======================================== */
+.admin-tabs {
+  display: flex;
+  gap: 8px;
+  padding: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  margin-bottom: 16px;
+}
+
+.admin-tab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 12px;
+  background: transparent;
+  border: none;
+  border-radius: 10px;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+
+.admin-tab.active {
+  background: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+}
+
+.admin-order-card {
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(40px) saturate(180%);
+  border-radius: 16px;
+  border: 0.5px solid rgba(255, 255, 255, 0.12);
+}
+
+.admin-order-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.admin-status {
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.admin-status.pending {
+  background: rgba(255, 204, 0, 0.2);
+  color: rgb(255, 204, 0);
+}
+
+.admin-status.approved {
+  background: rgba(52, 199, 89, 0.2);
+  color: rgb(52, 199, 89);
+}
+
+.admin-status.rejected {
+  background: rgba(255, 69, 58, 0.2);
+  color: rgb(255, 69, 58);
+}
+
+.admin-order-details {
+  margin-bottom: 12px;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 10px;
+}
+
+.admin-order-details p {
+  font-size: 13px;
+  margin-bottom: 6px;
+}
+
+.admin-order-details p:last-child {
+  margin-bottom: 0;
+}
+
+.admin-order-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.admin-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 14px;
+  border: none;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+
+.admin-btn:active {
+  transform: scale(0.95);
+}
+
+.admin-btn.contact {
+  flex: 1;
+  background: rgba(10, 132, 255, 0.2);
+  color: rgb(10, 132, 255);
+}
+
+.admin-btn.approve {
+  background: rgba(52, 199, 89, 0.2);
+  color: rgb(52, 199, 89);
+  padding: 10px 12px;
+}
+
+.admin-btn.reject {
+  background: rgba(255, 69, 58, 0.2);
+  color: rgb(255, 69, 58);
+  padding: 10px 12px;
+}
+
+.admin-btn.edit {
+  background: rgba(255, 149, 0, 0.2);
+  color: rgb(255, 149, 0);
+  padding: 10px 12px;
+}
+
+.admin-btn.delete {
+  background: rgba(255, 69, 58, 0.2);
+  color: rgb(255, 69, 58);
+  padding: 10px 12px;
+}
+
+.admin-btn-small {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+
+.admin-btn-small:active {
+  transform: scale(0.9);
+}
+
+.admin-btn-small.green {
+  background: rgba(52, 199, 89, 0.2);
+  color: rgb(52, 199, 89);
+}
+
+.admin-btn-small.red {
+  background: rgba(255, 69, 58, 0.2);
+  color: rgb(255, 69, 58);
+}
+
+.admin-edit-input {
+  flex: 1;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 0.5px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  color: #ffffff;
+  font-size: 14px;
+  outline: none;
+}
+
+.admin-edit-input:focus {
+  border-color: rgba(255, 149, 0, 0.5);
+}
