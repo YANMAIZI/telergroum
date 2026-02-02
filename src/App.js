@@ -61,6 +61,27 @@ const API =
   process.env.REACT_APP_BACKEND_URL ||
   (typeof window !== 'undefined' ? `${window.location.origin}/api` : '');
 
+// ==========================================
+// ERROR CODES (matching backend)
+// ==========================================
+const ErrorMessages = {
+  NO_USER: 'Telegram пользователь не определен',
+  NO_TELEGRAM_USER: 'Откройте приложение через Telegram',
+  NO_SERVER: 'Сервер не выбран',
+  INVALID_AMOUNT: 'Некорректное количество виртов',
+  CREATE_FAILED: 'Ошибка создания заявки',
+  UPDATE_FAILED: 'Ошибка обновления заявки',
+  DELETE_FAILED: 'Ошибка удаления заявки',
+  NOT_FOUND: 'Заявка не найдена',
+  INTERNAL_ERROR: 'Внутренняя ошибка сервера',
+  NETWORK_ERROR: 'Ошибка сети. Проверьте соединение'
+};
+
+// Get error message from error code
+const getErrorMessage = (errorCode) => {
+  return ErrorMessages[errorCode] || ErrorMessages.INTERNAL_ERROR;
+};
+
 // Safe API call wrapper with error handling
 const safeApiCall = async (apiFunction) => {
   try {
@@ -89,21 +110,45 @@ const validateAmount = (amount) => {
 };
 
 // ==========================================
-// API ORDER MANAGEMENT (MongoDB through Backend)
+// TELEGRAM USER VALIDATION (Strict)
+// ==========================================
+const getTelegramUser = () => {
+  const tg = window.Telegram?.WebApp;
+  const user = tg?.initDataUnsafe?.user;
+  
+  if (!user || !user.id) {
+    return { valid: false, error: 'NO_TELEGRAM_USER' };
+  }
+  
+  return {
+    valid: true,
+    userId: user.id.toString(),
+    username: user.username || `user_${user.id}`,
+    firstName: user.first_name || 'Пользователь'
+  };
+};
+
+// Check if running in Telegram WebApp
+const isInTelegram = () => {
+  return Boolean(window.Telegram?.WebApp?.initDataUnsafe?.user?.id);
+};
+
+// ==========================================
+// API ORDER MANAGEMENT (SQLite through Backend)
 // ==========================================
 
-// Create order through API
+// Create order through API with proper error handling
 const createOrder = async (orderData) => {
   try {
     if (!API) {
       console.error('Backend API URL not configured');
-      return null;
+      return { success: false, error: 'INTERNAL_ERROR' };
     }
 
     const server = SERVERS.find(s => s.id === orderData.serverId);
     if (!server) {
       console.error('Server not found');
-      return null;
+      return { success: false, error: 'NO_SERVER' };
     }
 
     const apiData = {
@@ -121,10 +166,18 @@ const createOrder = async (orderData) => {
     };
 
     const response = await axios.post(`${API}/orders`, apiData, { timeout: 10000 });
-    return response.data;
+    
+    if (response.data && response.data.success !== false) {
+      return { success: true, data: response.data };
+    }
+    
+    return { success: false, error: response.data?.error || 'CREATE_FAILED' };
   } catch (error) {
     console.error('Error creating order:', error);
-    return null;
+    
+    // Extract error code from backend response if available
+    const errorCode = error.response?.data?.error || 'NETWORK_ERROR';
+    return { success: false, error: errorCode };
   }
 };
 
@@ -338,17 +391,23 @@ const notifyNewSellOrder = async (order, serverName) => {
 // ==========================================
 
 const getCurrentUser = () => {
-  const tg = window.Telegram?.WebApp;
+  const tgUser = getTelegramUser();
+  
+  // Demo mode fallback for development only
+  const isDemoMode = !tgUser.valid && (window.location.hostname === 'localhost' || process.env.NODE_ENV === 'development');
+  
   const user = {
-    userId: tg?.initDataUnsafe?.user?.id?.toString() || 'demo123',
-    username: tg?.initDataUnsafe?.user?.username || 'demo_user',
-    firstName: tg?.initDataUnsafe?.user?.first_name || 'Пользователь',
-    isAdmin: (tg?.initDataUnsafe?.user?.username || 'demo_user') === ADMIN_USERNAME
+    userId: tgUser.valid ? tgUser.userId : (isDemoMode ? 'demo123' : null),
+    username: tgUser.valid ? tgUser.username : (isDemoMode ? 'demo_user' : null),
+    firstName: tgUser.valid ? tgUser.firstName : (isDemoMode ? 'Пользователь' : null),
+    isAdmin: (tgUser.valid ? tgUser.username : (isDemoMode ? 'demo_user' : '')) === ADMIN_USERNAME,
+    isTelegramUser: tgUser.valid,
+    isDemoMode: isDemoMode
   };
 
   // Запоминаем пользователя локально для стабильной идентификации
   try {
-    if (tg?.initDataUnsafe?.user) {
+    if (tgUser.valid) {
       localStorage.setItem(
         'tg_user',
         JSON.stringify({
@@ -969,35 +1028,46 @@ const BuyVirtyFlow = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // Double-click protection - prevent if already loading
+    if (loading) {
+      return;
+    }
+
     // Validate amount
     if (!validateAmount(amount)) {
-      toast.error('Некорректное количество виртов');
+      toast.error(getErrorMessage('INVALID_AMOUNT'));
+      return;
+    }
+
+    // Strict Telegram user validation
+    const user = getCurrentUser();
+    if (!user.userId) {
+      toast.error(getErrorMessage('NO_TELEGRAM_USER'));
       return;
     }
 
     setLoading(true);
 
     try {
-      const { userId, username } = getCurrentUser();
-
       // Create buy order through unified backend API
-      const order = await createOrder({
+      const result = await createOrder({
         type: 'buy',
         serverId: server.id,
-        userId,
-        username,
+        userId: user.userId,
+        username: user.username,
         amount,
         totalPrice: parseFloat(totalPrice),
-        contact: contact || '@' + username,
+        contact: contact || '@' + user.username,
         refundEnabled
       });
 
-      if (!order) {
-        throw new Error('Failed to create order');
+      if (!result.success) {
+        toast.error(getErrorMessage(result.error));
+        return;
       }
 
-      // Send notification to admin
-      await notifyNewBuyOrder(order, server.name);
+      // Send notification to admin (non-blocking, ignore errors)
+      notifyNewBuyOrder(result.data, server.name).catch(() => {});
 
       toast.success('Заявка на покупку создана!');
       setShowSuccess(true);
@@ -1006,7 +1076,7 @@ const BuyVirtyFlow = () => {
       }, 3000);
     } catch (error) {
       console.error('Error submitting reservation:', error);
-      toast.error('Ошибка при создании заявки. Попробуйте снова.');
+      toast.error(getErrorMessage('CREATE_FAILED'));
     } finally {
       setLoading(false);
     }
@@ -1362,35 +1432,46 @@ const SellVirtyFlow = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // Double-click protection - prevent if already loading
+    if (loading) {
+      return;
+    }
+
     // Validate amount
     if (!validateAmount(amount)) {
-      toast.error('Некорректное количество виртов');
+      toast.error(getErrorMessage('INVALID_AMOUNT'));
+      return;
+    }
+
+    // Strict Telegram user validation
+    const user = getCurrentUser();
+    if (!user.userId) {
+      toast.error(getErrorMessage('NO_TELEGRAM_USER'));
       return;
     }
 
     setLoading(true);
 
     try {
-      const { userId, username } = getCurrentUser();
-
       // Create sell order through unified backend API (requires approval)
-      const order = await createOrder({
+      const result = await createOrder({
         type: 'sell',
         serverId: server.id,
-        userId,
-        username,
+        userId: user.userId,
+        username: user.username,
         amount,
         totalPrice: parseFloat(totalPrice),
-        contact: contact || '@' + username,
+        contact: contact || '@' + user.username,
         refundEnabled: true
       });
 
-      if (!order) {
-        throw new Error('Failed to create order');
+      if (!result.success) {
+        toast.error(getErrorMessage(result.error));
+        return;
       }
 
-      // Send notification to admin for approval
-      await notifyNewSellOrder(order, server.name);
+      // Send notification to admin for approval (non-blocking)
+      notifyNewSellOrder(result.data, server.name).catch(() => {});
 
       toast.success('Заявка на продажу отправлена на модерацию!');
       setShowSuccess(true);
@@ -1399,7 +1480,7 @@ const SellVirtyFlow = () => {
       }, 3000);
     } catch (error) {
       console.error('Error submitting contribution:', error);
-      toast.error('Ошибка при создании заявки. Попробуйте снова.');
+      toast.error(getErrorMessage('CREATE_FAILED'));
     } finally {
       setLoading(false);
     }
