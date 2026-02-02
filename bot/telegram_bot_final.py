@@ -36,13 +36,22 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Конфигурация
-BOT_TOKEN = os.getenv("BOT_TOKEN", "8067623423:AAEVnx-MkUyEIOhnFoqCmZMVDwNo8lkPMtA")
+BOT_TOKEN = os.getenv("BOT_TOKEN", "").strip()
 CHANNEL_ID = -1003778829727
 SUPPORT_USERNAME = "patrickprodast"
 ADMIN_USER_ID = 7858974852
 
-# Backend API URL
-API_BASE_URL = os.getenv("API_BASE_URL", "http://localhost:3001/api")
+# Backend API URL - должен быть установлен в Railway
+API_BASE_URL = os.getenv("API_BASE_URL", "").strip()
+
+# Проверка обязательных переменных окружения
+if not BOT_TOKEN:
+    logger.error("❌ BOT_TOKEN не установлен! Установите переменную окружения BOT_TOKEN в Railway.")
+    raise ValueError("BOT_TOKEN is required")
+
+if not API_BASE_URL:
+    logger.error("❌ API_BASE_URL не установлен! Установите переменную окружения API_BASE_URL в Railway.")
+    raise ValueError("API_BASE_URL is required")
 
 # Данные серверов и проектов
 GTA5RP_SERVERS = {
@@ -506,9 +515,20 @@ async def back_to_servers(callback: CallbackQuery, state: FSMContext):
 async def main():
     logger.info(f"🚀 Бот запускается...")
     logger.info(f"📡 API URL: {API_BASE_URL}")
+    logger.info(f"🤖 BOT_TOKEN: {'*' * 10}...{BOT_TOKEN[-5:] if len(BOT_TOKEN) > 5 else 'N/A'}")
+    
+    # Проверка токена перед запуском
+    try:
+        bot_info = await bot.get_me()
+        logger.info(f"✅ Бот авторизован: @{bot_info.username} ({bot_info.first_name})")
+    except Exception as e:
+        logger.error(f"❌ Ошибка авторизации бота: {e}")
+        logger.error("Проверьте правильность BOT_TOKEN в переменных окружения Railway!")
+        raise
+    
     dp.include_router(router)
     await bot.delete_webhook(drop_pending_updates=True)
-    logger.info("✅ Бот успешно запущен!")
+    logger.info("✅ Бот успешно запущен и готов к работе!")
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
