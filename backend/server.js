@@ -126,9 +126,9 @@ const sendError = (res, statusCode, errorCode, details = null) => {
 // ==========================================
 // TELEGRAM NOTIFICATION (Background, non-blocking)
 // ==========================================
-const BOT_TOKEN = process.env.BOT_TOKEN || process.env.REACT_APP_BOT_TOKEN || '';
-const ADMIN_USER_ID = process.env.ADMIN_USER_ID || '';
-const ADMIN_CHAT_ID = process.env.ADMIN_CHAT_ID || process.env.REACT_APP_ADMIN_CHAT_ID || '';
+const BOT_TOKEN = (process.env.BOT_TOKEN || process.env.REACT_APP_BOT_TOKEN || '').trim();
+const ADMIN_USER_ID = (process.env.ADMIN_USER_ID || '').trim();
+const ADMIN_CHAT_ID = (process.env.ADMIN_CHAT_ID || process.env.REACT_APP_ADMIN_CHAT_ID || '').trim();
 
 const postTelegramMessage = async (payload) => {
   const url = new URL(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`);
