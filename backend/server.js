@@ -181,6 +181,12 @@ const sendTelegramNotificationAsync = (message, chatIdOverride = null) => {
 
   if (!BOT_TOKEN || !chatId) {
     console.warn('[TELEGRAM] Skipped: BOT_TOKEN or ADMIN_CHAT_ID/ADMIN_USER_ID not set');
+const sendTelegramNotificationAsync = (message, chatIdOverride = null) => {
+  // Fire and forget - don't await, don't block
+  const chatId = chatIdOverride || ADMIN_USER_ID;
+
+  if (!BOT_TOKEN || !chatId) {
+    console.warn('[TELEGRAM] Skipped: BOT_TOKEN or ADMIN_USER_ID not set');
     return;
   }
 
@@ -194,6 +200,14 @@ const sendTelegramNotificationAsync = (message, chatIdOverride = null) => {
         text: message,
         parse_mode: 'HTML',
         disable_web_page_preview: true
+      const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: chatId,
+          text: message,
+          parse_mode: 'HTML'
+        })
       });
 
       if (!response.ok) {
