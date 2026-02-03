@@ -40,8 +40,18 @@ CHANNEL_ID = -1003778829727
 SUPPORT_USERNAME = "patrickprodast"
 ADMIN_USER_ID = int(os.getenv("ADMIN_USER_ID", "7858974852"))
 
+def normalize_api_base(url: str) -> str:
+    if not url:
+        return ""
+
+    trimmed = url.rstrip("/")
+    return trimmed if trimmed.endswith("/api") else f"{trimmed}/api"
+
+
 # Backend API URL
-API_BASE_URL = os.getenv("API_BASE_URL", "http://localhost:3001/api")
+API_BASE_URL = normalize_api_base(
+    os.getenv("API_BASE_URL") or os.getenv("BACKEND_URL") or "http://localhost:3001"
+)
 
 # Данные серверов и проектов
 GTA5RP_SERVERS = {
@@ -307,9 +317,9 @@ async def get_servers_menu(project_key: str, action: str = "buy") -> InlineKeybo
                 server = servers[i + j]
                 server_data = prices.get(server, {"sellPrice": 700, "buyPrice": 350})
                 
-                # Показать статистику для покупки
+                # Показать статистику продавцов и объема
                 stats = stats_dict.get(server, {})
-                if action == "buy" and stats:
+                if stats:
                     sellers_count = stats.get("total_sellers", 0)
                     total_kk = stats.get("total_amount", 0) // 1000000
                     label = f"{server} ({sellers_count}чел, {total_kk}кк)"
@@ -543,7 +553,7 @@ async def cmd_orders(message: Message):
         username = order.get("username", "?")
         project = order.get("project", "?")
         server = order.get("server_name", "?")
-        amount = order.get("amount", 0) // 1000
+        amount = order.get("amount", 0) // 1_000_000
         price = order.get("price", 0)
         status = order.get("status", "pending")
         order_id = order.get("id", "?")
@@ -592,7 +602,7 @@ async def cmd_orders_buy(message: Message):
     for order in recent_orders:
         username = order.get("username", "?")
         server = order.get("server_name", "?")
-        amount = order.get("amount", 0) // 1000
+        amount = order.get("amount", 0) // 1_000_000
         price = order.get("price", 0)
         order_id = order.get("id", "?")
         
@@ -620,7 +630,7 @@ async def cmd_orders_sell(message: Message):
     for order in recent_orders:
         username = order.get("username", "?")
         server = order.get("server_name", "?")
-        amount = order.get("amount", 0) // 1000
+        amount = order.get("amount", 0) // 1_000_000
         price = order.get("price", 0)
         status = order.get("status", "pending")
         order_id = order.get("id", "?")
@@ -650,7 +660,7 @@ async def cmd_orders_pending(message: Message):
         action = "🛒 Покупка" if order.get("order_type") == "buy" else "💰 Продажа"
         username = order.get("username", "?")
         server = order.get("server_name", "?")
-        amount = order.get("amount", 0) // 1000
+        amount = order.get("amount", 0) // 1_000_000
         price = order.get("price", 0)
         order_id = order.get("id", "?")
         
@@ -701,7 +711,7 @@ async def cmd_approve_order(message: Message):
 
 👤 @{order.get('username')}
 🎮 {order.get('project')} - {order.get('server_name')}
-💎 {order.get('amount', 0) // 1000}кк
+💎 {order.get('amount', 0) // 1_000_000}кк
 💵 {order.get('price')}₽""")
             
             # Уведомить пользователя
@@ -713,7 +723,7 @@ async def cmd_approve_order(message: Message):
                     text=f"""<b>✅ Ваша заявка на {action_text} одобрена!</b>
 
 🎮 {order.get('project')} - {order.get('server_name')}
-💎 {order.get('amount', 0) // 1000}кк
+💎 {order.get('amount', 0) // 1_000_000}кк
 💵 {order.get('price')}₽
 
 Свяжитесь с @{SUPPORT_USERNAME} для завершения сделки."""
@@ -750,7 +760,7 @@ async def cmd_reject_order(message: Message):
 
 👤 @{order.get('username')}
 🎮 {order.get('project')} - {order.get('server_name')}
-💎 {order.get('amount', 0) // 1000}кк""")
+💎 {order.get('amount', 0) // 1_000_000}кк""")
             
             # Уведомить пользователя
             try:
@@ -761,7 +771,7 @@ async def cmd_reject_order(message: Message):
                     text=f"""<b>❌ Ваша заявка на {action_text} отклонена</b>
 
 🎮 {order.get('project')} - {order.get('server_name')}
-💎 {order.get('amount', 0) // 1000}кк
+💎 {order.get('amount', 0) // 1_000_000}кк
 
 Свяжитесь с @{SUPPORT_USERNAME} для уточнения деталей."""
                 )
@@ -797,7 +807,7 @@ async def cmd_delete_order(message: Message):
 
 👤 @{order.get('username')}
 🎮 {order.get('project')} - {order.get('server_name')}
-💎 {order.get('amount', 0) // 1000}кк""")
+💎 {order.get('amount', 0) // 1_000_000}кк""")
         else:
             await message.answer("<b>❌ Ошибка удаления заявки</b>")
     except Exception as e:
@@ -814,7 +824,7 @@ async def cmd_edit_order(message: Message):
     try:
         parts = message.text.split("_")
         short_id = parts[1]
-        new_amount = int(parts[2]) * 1000  # конвертировать кк в вирты
+        new_amount = int(parts[2]) * 1_000_000  # конвертировать кк в вирты
         
         orders = await api_client.get_orders()
         order = next((o for o in orders if o["id"].startswith(short_id)), None)
@@ -839,7 +849,7 @@ async def cmd_edit_order(message: Message):
 
 👤 @{order.get('username')}
 🎮 {order.get('project')} - {order.get('server_name')}
-💎 Было: {old_amount // 1000}кк → Стало: {new_amount // 1000}кк
+💎 Было: {old_amount // 1_000_000}кк → Стало: {new_amount // 1_000_000}кк
 💵 Было: {old_price}₽ → Стало: {new_price}₽""")
         else:
             await message.answer("<b>❌ Ошибка обновления заявки</b>")
@@ -956,7 +966,7 @@ async def handle_amount(callback: CallbackQuery, state: FSMContext):
     parts = callback.data.split("_")
     amount_kk = int(parts[1])
     price = float(parts[2])
-    amount = amount_kk * 1000  # конвертировать кк в вирты
+    amount = amount_kk * 1_000_000  # конвертировать кк в вирты
     
     # Создать заявку через API
     user_id = callback.from_user.id
