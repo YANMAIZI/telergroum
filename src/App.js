@@ -56,10 +56,44 @@ const ADMIN_USERNAME = process.env.REACT_APP_ADMIN_USERNAME || 'patrickprodast';
 const BOT_TOKEN = process.env.REACT_APP_BOT_TOKEN || '';
 const ADMIN_CHAT_ID = process.env.REACT_APP_ADMIN_CHAT_ID || '';
 
-// Backend API URL: сначала переменная окружения, иначе относительный /api
-const API =
+const normalizeApiBase = (baseUrl) => {
+  if (!baseUrl) {
+    return '';
+  }
+
+  const trimmed = baseUrl.replace(/\/+$/, '');
+  return trimmed.endsWith('/api') ? trimmed : `${trimmed}/api`;
+};
+
+const getStoredBackendUrl = () => {
+  if (typeof window === 'undefined') {
+    return '';
+  }
+
+  const params = new URLSearchParams(window.location.search);
+  const paramUrl = params.get('backend');
+  if (paramUrl) {
+    try {
+      localStorage.setItem('backend_url', paramUrl);
+    } catch {
+      // ignore storage errors
+    }
+    return paramUrl;
+  }
+
+  try {
+    return localStorage.getItem('backend_url') || '';
+  } catch {
+    return '';
+  }
+};
+
+// Backend API URL: env -> query/localStorage -> same-origin /api
+const API = normalizeApiBase(
   process.env.REACT_APP_BACKEND_URL ||
-  (typeof window !== 'undefined' ? `${window.location.origin}/api` : '');
+  getStoredBackendUrl() ||
+  (typeof window !== 'undefined' ? window.location.origin : '')
+);
 
 // ==========================================
 // ERROR CODES (matching backend)

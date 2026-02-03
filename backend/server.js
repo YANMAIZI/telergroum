@@ -128,9 +128,11 @@ const sendError = (res, statusCode, errorCode, details = null) => {
 const BOT_TOKEN = process.env.BOT_TOKEN || '';
 const ADMIN_USER_ID = process.env.ADMIN_USER_ID || '';
 
-const sendTelegramNotificationAsync = (message) => {
+const sendTelegramNotificationAsync = (message, chatIdOverride = null) => {
   // Fire and forget - don't await, don't block
-  if (!BOT_TOKEN || !ADMIN_USER_ID) {
+  const chatId = chatIdOverride || ADMIN_USER_ID;
+
+  if (!BOT_TOKEN || !chatId) {
     console.warn('[TELEGRAM] Skipped: BOT_TOKEN or ADMIN_USER_ID not set');
     return;
   }
@@ -142,7 +144,7 @@ const sendTelegramNotificationAsync = (message) => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          chat_id: '@patrickprodast',
+          chat_id: chatId,
           text: message,
           parse_mode: 'HTML'
         })
@@ -285,14 +287,19 @@ app.post('/api/orders', (req, res) => {
     // Send Telegram notification in background (non-blocking)
     const typeLabel = orderData.order_type === 'buy' ? 'Покупка' : 'Продажа';
     const statusLabel = orderData.status === 'approved' ? '✅ Одобрено' : '⏳ Ожидает';
+    const amountKk = Math.round(orderData.amount / 1000000);
+    const shortId = orderId.slice(0, 8);
     const message = `🧾 <b>Новая заявка</b>\n\n` +
       `Тип: <b>${typeLabel}</b>\n` +
       `Статус: ${statusLabel}\n` +
       `Пользователь: @${orderData.username || 'unknown'}\n` +
       `Сервер: ${orderData.server_name || '—'}\n` +
-      `Количество: ${orderData.amount.toLocaleString()}\n` +
+      `Количество: ${amountKk}кк (${orderData.amount.toLocaleString()})\n` +
       `Сумма: ${orderData.price} ₽\n` +
-      `Источник: ${orderData.source || 'webapp'}`;
+      `Источник: ${orderData.source || 'webapp'}\n\n` +
+      `🆔 <code>${shortId}</code>\n` +
+      `✅ /approve_${shortId} | ❌ /reject_${shortId}\n` +
+      `🗑 /delete_${shortId} | ✏️ /edit_${shortId}_${amountKk}`;
 
     sendTelegramNotificationAsync(message);
 

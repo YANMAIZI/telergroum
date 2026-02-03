@@ -543,7 +543,7 @@ async def cmd_orders(message: Message):
         username = order.get("username", "?")
         project = order.get("project", "?")
         server = order.get("server_name", "?")
-        amount = order.get("amount", 0) // 1000
+        amount = order.get("amount", 0) // 1_000_000
         price = order.get("price", 0)
         status = order.get("status", "pending")
         order_id = order.get("id", "?")
@@ -592,7 +592,7 @@ async def cmd_orders_buy(message: Message):
     for order in recent_orders:
         username = order.get("username", "?")
         server = order.get("server_name", "?")
-        amount = order.get("amount", 0) // 1000
+        amount = order.get("amount", 0) // 1_000_000
         price = order.get("price", 0)
         order_id = order.get("id", "?")
         
@@ -620,7 +620,7 @@ async def cmd_orders_sell(message: Message):
     for order in recent_orders:
         username = order.get("username", "?")
         server = order.get("server_name", "?")
-        amount = order.get("amount", 0) // 1000
+        amount = order.get("amount", 0) // 1_000_000
         price = order.get("price", 0)
         status = order.get("status", "pending")
         order_id = order.get("id", "?")
@@ -650,7 +650,7 @@ async def cmd_orders_pending(message: Message):
         action = "🛒 Покупка" if order.get("order_type") == "buy" else "💰 Продажа"
         username = order.get("username", "?")
         server = order.get("server_name", "?")
-        amount = order.get("amount", 0) // 1000
+        amount = order.get("amount", 0) // 1_000_000
         price = order.get("price", 0)
         order_id = order.get("id", "?")
         
@@ -701,7 +701,7 @@ async def cmd_approve_order(message: Message):
 
 👤 @{order.get('username')}
 🎮 {order.get('project')} - {order.get('server_name')}
-💎 {order.get('amount', 0) // 1000}кк
+💎 {order.get('amount', 0) // 1_000_000}кк
 💵 {order.get('price')}₽""")
             
             # Уведомить пользователя
@@ -713,7 +713,7 @@ async def cmd_approve_order(message: Message):
                     text=f"""<b>✅ Ваша заявка на {action_text} одобрена!</b>
 
 🎮 {order.get('project')} - {order.get('server_name')}
-💎 {order.get('amount', 0) // 1000}кк
+💎 {order.get('amount', 0) // 1_000_000}кк
 💵 {order.get('price')}₽
 
 Свяжитесь с @{SUPPORT_USERNAME} для завершения сделки."""
@@ -750,7 +750,7 @@ async def cmd_reject_order(message: Message):
 
 👤 @{order.get('username')}
 🎮 {order.get('project')} - {order.get('server_name')}
-💎 {order.get('amount', 0) // 1000}кк""")
+💎 {order.get('amount', 0) // 1_000_000}кк""")
             
             # Уведомить пользователя
             try:
@@ -761,7 +761,7 @@ async def cmd_reject_order(message: Message):
                     text=f"""<b>❌ Ваша заявка на {action_text} отклонена</b>
 
 🎮 {order.get('project')} - {order.get('server_name')}
-💎 {order.get('amount', 0) // 1000}кк
+💎 {order.get('amount', 0) // 1_000_000}кк
 
 Свяжитесь с @{SUPPORT_USERNAME} для уточнения деталей."""
                 )
@@ -797,7 +797,7 @@ async def cmd_delete_order(message: Message):
 
 👤 @{order.get('username')}
 🎮 {order.get('project')} - {order.get('server_name')}
-💎 {order.get('amount', 0) // 1000}кк""")
+💎 {order.get('amount', 0) // 1_000_000}кк""")
         else:
             await message.answer("<b>❌ Ошибка удаления заявки</b>")
     except Exception as e:
@@ -814,7 +814,7 @@ async def cmd_edit_order(message: Message):
     try:
         parts = message.text.split("_")
         short_id = parts[1]
-        new_amount = int(parts[2]) * 1000  # конвертировать кк в вирты
+        new_amount = int(parts[2]) * 1_000_000  # конвертировать кк в вирты
         
         orders = await api_client.get_orders()
         order = next((o for o in orders if o["id"].startswith(short_id)), None)
@@ -839,7 +839,7 @@ async def cmd_edit_order(message: Message):
 
 👤 @{order.get('username')}
 🎮 {order.get('project')} - {order.get('server_name')}
-💎 Было: {old_amount // 1000}кк → Стало: {new_amount // 1000}кк
+💎 Было: {old_amount // 1_000_000}кк → Стало: {new_amount // 1_000_000}кк
 💵 Было: {old_price}₽ → Стало: {new_price}₽""")
         else:
             await message.answer("<b>❌ Ошибка обновления заявки</b>")
