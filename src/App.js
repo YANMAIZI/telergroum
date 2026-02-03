@@ -104,9 +104,22 @@ const validateServerId = (id) => {
   return !isNaN(numId) && numId > 0 && numId <= SERVERS.length;
 };
 
-const validateAmount = (amount) => {
+const normalizeAmount = (amount) => {
   const numAmount = parseInt(amount);
-  return !isNaN(numAmount) && numAmount >= 100000 && numAmount <= 100000000;
+  if (Number.isNaN(numAmount)) {
+    return 0;
+  }
+
+  if (numAmount > 0 && numAmount < 100000) {
+    return numAmount * 1000000;
+  }
+
+  return numAmount;
+};
+
+const validateAmount = (amount) => {
+  const normalizedAmount = normalizeAmount(amount);
+  return normalizedAmount >= 100000 && normalizedAmount <= 100000000;
 };
 
 // ==========================================
@@ -158,7 +171,7 @@ const createOrder = async (orderData) => {
       server_id: orderData.serverId,
       user_id: parseInt(orderData.userId) || 0,
       username: sanitizeInput(orderData.username),
-      amount: parseInt(orderData.amount),
+      amount: normalizeAmount(orderData.amount),
       price: parseFloat(orderData.totalPrice),
       contact: sanitizeInput(orderData.contact || ''),
       refund_enabled: orderData.refundEnabled !== false,
