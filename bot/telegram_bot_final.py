@@ -40,8 +40,18 @@ CHANNEL_ID = -1003778829727
 SUPPORT_USERNAME = "patrickprodast"
 ADMIN_USER_ID = int(os.getenv("ADMIN_USER_ID", "7858974852"))
 
+def normalize_api_base(url: str) -> str:
+    if not url:
+        return ""
+
+    trimmed = url.rstrip("/")
+    return trimmed if trimmed.endswith("/api") else f"{trimmed}/api"
+
+
 # Backend API URL
-API_BASE_URL = os.getenv("API_BASE_URL", "http://localhost:3001/api")
+API_BASE_URL = normalize_api_base(
+    os.getenv("API_BASE_URL") or os.getenv("BACKEND_URL") or "http://localhost:3001"
+)
 
 # Данные серверов и проектов
 GTA5RP_SERVERS = {

@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
+const https = require('https');
 const { v4: uuidv4 } = require('uuid');
 const Database = require('better-sqlite3');
 
@@ -125,9 +126,61 @@ const sendError = (res, statusCode, errorCode, details = null) => {
 // ==========================================
 // TELEGRAM NOTIFICATION (Background, non-blocking)
 // ==========================================
-const BOT_TOKEN = process.env.BOT_TOKEN || '';
-const ADMIN_USER_ID = process.env.ADMIN_USER_ID || '';
+const BOT_TOKEN = (process.env.BOT_TOKEN || process.env.REACT_APP_BOT_TOKEN || '').trim();
+const ADMIN_USER_ID = (process.env.ADMIN_USER_ID || '').trim();
+const ADMIN_CHAT_ID = (process.env.ADMIN_CHAT_ID || process.env.REACT_APP_ADMIN_CHAT_ID || '').trim();
 
+const postTelegramMessage = async (payload) => {
+  const url = new URL(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`);
+
+  if (typeof fetch === 'function') {
+    return fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+  }
+
+  const body = JSON.stringify(payload);
+
+  return new Promise((resolve, reject) => {
+    const req = https.request(
+      {
+        hostname: url.hostname,
+        path: `${url.pathname}${url.search}`,
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(body)
+        }
+      },
+      (res) => {
+        let data = '';
+        res.on('data', (chunk) => {
+          data += chunk;
+        });
+        res.on('end', () => {
+          resolve({
+            ok: res.statusCode >= 200 && res.statusCode < 300,
+            status: res.statusCode,
+            text: async () => data
+          });
+        });
+      }
+    );
+
+    req.on('error', reject);
+    req.write(body);
+    req.end();
+  });
+};
+
+const sendTelegramNotificationAsync = (message, chatIdOverride = null) => {
+  // Fire and forget - don't await, don't block
+  const chatId = chatIdOverride || ADMIN_CHAT_ID || ADMIN_USER_ID;
+
+  if (!BOT_TOKEN || !chatId) {
+    console.warn('[TELEGRAM] Skipped: BOT_TOKEN or ADMIN_CHAT_ID/ADMIN_USER_ID not set');
 const sendTelegramNotificationAsync = (message, chatIdOverride = null) => {
   // Fire and forget - don't await, don't block
   const chatId = chatIdOverride || ADMIN_USER_ID;
@@ -137,9 +190,16 @@ const sendTelegramNotificationAsync = (message, chatIdOverride = null) => {
     return;
   }
 
+  const normalizedChatId = typeof chatId === 'string' ? chatId.trim() : chatId;
+
   // Send in background without awaiting
   setImmediate(async () => {
     try {
+      const response = await postTelegramMessage({
+        chat_id: normalizedChatId,
+        text: message,
+        parse_mode: 'HTML',
+        disable_web_page_preview: true
       const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
