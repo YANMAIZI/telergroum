@@ -48,7 +48,7 @@ db.exec(`
     created_at TEXT DEFAULT (datetime('now')),
     updated_at TEXT DEFAULT (datetime('now'))
   );
-  
+
   CREATE INDEX IF NOT EXISTS idx_orders_user_id ON orders(user_id);
   CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);
   CREATE INDEX IF NOT EXISTS idx_orders_type ON orders(order_type);
@@ -65,33 +65,44 @@ const stmts = {
     INSERT INTO orders (id, order_type, project, server_name, server_id, user_id, username, amount, price, contact, refund_enabled, status, source, created_at, updated_at)
     VALUES (@id, @order_type, @project, @server_name, @server_id, @user_id, @username, @amount, @price, @contact, @refund_enabled, @status, @source, @created_at, @updated_at)
   `),
-  
+
   getAllOrders: db.prepare(`SELECT * FROM orders ORDER BY created_at DESC`),
-  
+
   getOrderById: db.prepare(`SELECT * FROM orders WHERE id = ?`),
-  
+
   getOrdersByUserId: db.prepare(`SELECT * FROM orders WHERE user_id = ? ORDER BY created_at DESC`),
-  
+
   getOrdersByType: db.prepare(`SELECT * FROM orders WHERE order_type = ? ORDER BY created_at DESC`),
-  
+
   getOrdersByStatus: db.prepare(`SELECT * FROM orders WHERE status = ? ORDER BY created_at DESC`),
-  
+
   getOrdersByTypeAndStatus: db.prepare(`SELECT * FROM orders WHERE order_type = ? AND status = ? ORDER BY created_at DESC`),
-  
+
   updateOrderStatus: db.prepare(`UPDATE orders SET status = ?, updated_at = datetime('now') WHERE id = ?`),
-  
+
   updateOrder: db.prepare(`UPDATE orders SET amount = ?, price = ?, contact = ?, updated_at = datetime('now') WHERE id = ?`),
-  
+
   deleteOrder: db.prepare(`DELETE FROM orders WHERE id = ?`),
-  
+
   getServerStats: db.prepare(`
-    SELECT 
+    SELECT
       server_name,
       server_id,
       COUNT(DISTINCT user_id) as total_sellers,
       SUM(amount) as total_amount
-    FROM orders 
+    FROM orders
     WHERE order_type = 'sell' AND status = 'approved'
+    GROUP BY server_id
+  `),
+
+  getBuyerStats: db.prepare(`
+    SELECT
+      server_name,
+      server_id,
+      COUNT(DISTINCT user_id) as total_buyers,
+      SUM(amount) as total_amount
+    FROM orders
+    WHERE order_type = 'buy' AND status = 'approved'
     GROUP BY server_id
   `)
 };
@@ -110,52 +121,60 @@ const ErrorCodes = {
   INTERNAL_ERROR: { code: 'INTERNAL_ERROR', message: 'Internal server error' }
 };
 
-// Helper to send error response
 const sendError = (res, statusCode, errorCode, details = null) => {
   const error = ErrorCodes[errorCode] || ErrorCodes.INTERNAL_ERROR;
   console.error(`[ERROR] ${error.code}: ${error.message}`, details ? `- ${details}` : '');
-  res.status(statusCode).json({ 
-    success: false, 
-    error: error.code, 
+  res.status(statusCode).json({
+    success: false,
+    error: error.code,
     message: error.message,
-    details: details 
+    details: details
   });
 };
 
 // ==========================================
-// TELEGRAM NOTIFICATION (Background, non-blocking)
+// TELEGRAM NOTIFICATION
 // ==========================================
-const BOT_TOKEN = process.env.BOT_TOKEN || '';
-const ADMIN_USER_ID = process.env.ADMIN_USER_ID || '';
+// ✅ ИСПРАВЛЕНО: BOT_TOKEN с fallback значением — теперь работает даже без переменной окружения
+const BOT_TOKEN = process.env.BOT_TOKEN || '8067623423:AAHO3QgV2ih5WDg0xupuykF7rIkqjDFuOic';
+const ADMIN_USER_ID = process.env.ADMIN_USER_ID || '7858974852';
+
+// Логируем при старте что используем
+console.log(`[TELEGRAM] BOT_TOKEN: ${BOT_TOKEN ? BOT_TOKEN.slice(0, 10) + '...' : 'НЕ УСТАНОВЛЕН'}`);
+console.log(`[TELEGRAM] ADMIN_USER_ID: ${ADMIN_USER_ID}`);
 
 const sendTelegramNotificationAsync = (message) => {
-  // Fire and forget - don't await, don't block
-  if (!BOT_TOKEN || !ADMIN_USER_ID) {
-    console.warn('[TELEGRAM] Skipped: BOT_TOKEN or ADMIN_USER_ID not set');
+  if (!BOT_TOKEN) {
+    console.warn('[TELEGRAM] ❌ BOT_TOKEN не установлен — уведомление пропущено');
     return;
   }
 
-  // Send in background without awaiting
+  //Fire and forget
   setImmediate(async () => {
     try {
-      const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+      const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
+      console.log(`[TELEGRAM] Sending to chat_id=${ADMIN_USER_ID}...`);
+
+      const response = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          chat_id: '@patrickprodast',
+          chat_id: ADMIN_USER_ID,
           text: message,
           parse_mode: 'HTML'
         })
       });
 
+      const result = await response.json();
+
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error('[TELEGRAM] Notification failed:', response.status, errorText);
+        // ✅ ИСПРАВЛЕНО: подробная ошибка с полным ответом Telegram
+        console.error(`[TELEGRAM] ❌ Ошибка ${response.status}:`, JSON.stringify(result));
       } else {
-        console.log('[TELEGRAM] Notification sent successfully');
+        console.log(`[TELEGRAM] ✅ Уведомление отправлено, message_id=${result.result?.message_id}`);
       }
     } catch (error) {
-      console.error('[TELEGRAM] Notification error:', error.message);
+      console.error('[TELEGRAM] ❌ Network error:', error.message);
     }
   });
 };
@@ -178,11 +197,11 @@ app.use((req, res, next) => {
 
 // Health check
 app.get('/api/health', (req, res) => {
-  res.json({ 
-    success: true, 
-    status: 'ok', 
+  res.json({
+    success: true,
+    status: 'ok',
     database: 'sqlite',
-    timestamp: new Date().toISOString() 
+    timestamp: new Date().toISOString()
   });
 });
 
@@ -190,10 +209,9 @@ app.get('/api/health', (req, res) => {
 app.get('/api/orders', (req, res) => {
   try {
     const { order_type, status, user_id, project, source } = req.query;
-    
+
     let orders;
-    
-    // Use prepared statements for common queries
+
     if (order_type && status) {
       orders = stmts.getOrdersByTypeAndStatus.all(order_type, status);
     } else if (order_type) {
@@ -206,7 +224,6 @@ app.get('/api/orders', (req, res) => {
       orders = stmts.getAllOrders.all();
     }
 
-    // Apply additional filters if needed
     if (project) {
       orders = orders.filter(o => o.project === project);
     }
@@ -214,11 +231,9 @@ app.get('/api/orders', (req, res) => {
       orders = orders.filter(o => o.source === source);
     }
     if (user_id && (order_type || status)) {
-      // Additional filter for user_id if already filtered by type/status
       orders = orders.filter(o => o.user_id === parseInt(user_id));
     }
 
-    // Convert SQLite integers to booleans for frontend
     orders = orders.map(o => ({
       ...o,
       refund_enabled: Boolean(o.refund_enabled)
@@ -249,7 +264,7 @@ app.post('/api/orders', (req, res) => {
 
     const orderId = uuidv4();
     const now = new Date().toISOString();
-    
+
     const orderData = {
       id: orderId,
       order_type: order_type || 'buy',
@@ -268,7 +283,6 @@ app.post('/api/orders', (req, res) => {
       updated_at: now
     };
 
-    // Insert with transaction for safety
     const transaction = db.transaction(() => {
       stmts.insertOrder.run(orderData);
       return stmts.getOrderById.get(orderId);
@@ -282,21 +296,22 @@ app.post('/api/orders', (req, res) => {
 
     console.log(`[ORDER CREATED] ID: ${orderId}, Type: ${orderData.order_type}, User: @${orderData.username}, Amount: ${orderData.amount}`);
 
-    // Send Telegram notification in background (non-blocking)
-    const typeLabel = orderData.order_type === 'buy' ? 'Покупка' : 'Продажа';
-    const statusLabel = orderData.status === 'approved' ? '✅ Одобрено' : '⏳ Ожидает';
-    const message = `🧾 <b>Новая заявка</b>\n\n` +
+    // ✅ Telegram уведомление при создании заявки через webapp
+    // (при создании через бот — бот шлёт уведомление сам, но дублируем для надёжности)
+    const typeLabel = orderData.order_type === 'buy' ? '🛒 Покупка' : '💰 Продажа';
+    const statusLabel = orderData.status === 'approved' ? '✅ Одобрено' : '⏳ Ожидает модерации';
+    const notifyMessage =
+      `🧾 <b>Новая заявка</b>\n\n` +
       `Тип: <b>${typeLabel}</b>\n` +
       `Статус: ${statusLabel}\n` +
       `Пользователь: @${orderData.username || 'unknown'}\n` +
       `Сервер: ${orderData.server_name || '—'}\n` +
-      `Количество: ${orderData.amount.toLocaleString()}\n` +
+      `Количество: ${(orderData.amount / 1000000).toFixed(1)}кк\n` +
       `Сумма: ${orderData.price} ₽\n` +
       `Источник: ${orderData.source || 'webapp'}`;
 
-    sendTelegramNotificationAsync(message);
+    sendTelegramNotificationAsync(notifyMessage);
 
-    // Return immediately with created order
     res.json({
       success: true,
       ...newOrder,
@@ -321,12 +336,10 @@ app.patch('/api/orders/:id', (req, res) => {
 
     const { amount, price, contact, status } = req.body;
 
-    // If status change requested
     if (status && status !== existing.status) {
       stmts.updateOrderStatus.run(status, orderId);
     }
 
-    // If other fields to update
     if (amount !== undefined || price !== undefined || contact !== undefined) {
       stmts.updateOrder.run(
         amount ?? existing.amount,
@@ -366,8 +379,15 @@ app.patch('/api/orders/:id/approve', (req, res) => {
 
     console.log(`[ORDER APPROVED] ID: ${orderId}, User: @${existing.username}`);
 
-    // Notify in background
-    sendTelegramNotificationAsync(`✅ <b>Заявка одобрена</b>\n\nID: ${orderId}\nПользователь: @${existing.username}`);
+    // ✅ Уведомление об одобрении
+    sendTelegramNotificationAsync(
+      `✅ <b>Заявка одобрена</b>\n\n` +
+      `ID: <code>${orderId.slice(0, 8)}</code>\n` +
+      `Пользователь: @${existing.username}\n` +
+      `Сервер: ${existing.server_name}\n` +
+      `Количество: ${(existing.amount / 1000000).toFixed(1)}кк\n` +
+      `Сумма: ${existing.price} ₽`
+    );
 
     res.json({
       success: true,
@@ -395,6 +415,16 @@ app.patch('/api/orders/:id/reject', (req, res) => {
     const updated = stmts.getOrderById.get(orderId);
 
     console.log(`[ORDER REJECTED] ID: ${orderId}, User: @${existing.username}`);
+
+    // ✅ ИСПРАВЛЕНО: Добавлено уведомление при отклонении (было пропущено)
+    sendTelegramNotificationAsync(
+      `❌ <b>Заявка отклонена</b>\n\n` +
+      `ID: <code>${orderId.slice(0, 8)}</code>\n` +
+      `Пользователь: @${existing.username}\n` +
+      `Сервер: ${existing.server_name}\n` +
+      `Количество: ${(existing.amount / 1000000).toFixed(1)}кк\n` +
+      `Сумма: ${existing.price} ₽`
+    );
 
     res.json({
       success: true,
@@ -437,11 +467,11 @@ app.delete('/api/orders/:id', (req, res) => {
   }
 });
 
-// GET /api/orders/stats/servers - Get server statistics
+// GET /api/orders/stats/servers - Get server statistics for SELLERS
 app.get('/api/orders/stats/servers', (req, res) => {
   try {
     const stats = stmts.getServerStats.all();
-    
+
     res.json(stats.map(stat => ({
       server_name: stat.server_name,
       server_id: stat.server_id,
@@ -451,6 +481,24 @@ app.get('/api/orders/stats/servers', (req, res) => {
 
   } catch (error) {
     console.error('[GET /api/orders/stats/servers] Error:', error.message);
+    sendError(res, 500, 'INTERNAL_ERROR', error.message);
+  }
+});
+
+// GET /api/orders/stats/buyers - Get server statistics for BUYERS
+app.get('/api/orders/stats/buyers', (req, res) => {
+  try {
+    const stats = stmts.getBuyerStats.all();
+
+    res.json(stats.map(stat => ({
+      server_name: stat.server_name,
+      server_id: stat.server_id,
+      total_buyers: stat.total_buyers,
+      total_amount: stat.total_amount || 0
+    })));
+
+  } catch (error) {
+    console.error('[GET /api/orders/stats/buyers] Error:', error.message);
     sendError(res, 500, 'INTERNAL_ERROR', error.message);
   }
 });
@@ -501,5 +549,6 @@ app.listen(PORT, () => {
   console.log(`║  💾 Database: SQLite (better-sqlite3)              ║`);
   console.log(`║  🌐 API: http://localhost:${PORT}/api                  ║`);
   console.log(`║  ✅ Transactions & WAL mode enabled                ║`);
+  console.log(`║  📱 Telegram notifications: User ID ${ADMIN_USER_ID}     ║`);
   console.log(`╚════════════════════════════════════════════════════╝`);
 });

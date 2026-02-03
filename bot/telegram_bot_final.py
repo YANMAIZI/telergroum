@@ -34,14 +34,19 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# ==========================================
 # Конфигурация
+# ==========================================
 BOT_TOKEN = os.getenv("BOT_TOKEN", "8067623423:AAHO3QgV2ih5WDg0xupuykF7rIkqjDFuOic")
 CHANNEL_ID = -1003778829727
 SUPPORT_USERNAME = "patrickprodast"
 ADMIN_USER_ID = int(os.getenv("ADMIN_USER_ID", "7858974852"))
 
-# Backend API URL
-API_BASE_URL = os.getenv("API_BASE_URL", "http://localhost:3001/api")
+# ✅ ИСПРАВЛЕНО: URL теперь указывает на Railway backend
+API_BASE_URL = os.getenv("API_BASE_URL", "https://web-production-8aaaf.up.railway.app/api")
+
+# ✅ ИСПРАВЛЕНО: aiohttp timeout — используется ClientTimeout объект
+REQUEST_TIMEOUT = aiohttp.ClientTimeout(total=15)
 
 # Данные серверов и проектов
 GTA5RP_SERVERS = {
@@ -149,37 +154,38 @@ class UserStates(StatesGroup):
     selecting_server = State()
     selecting_amount = State()
 
-
 # ==========================================
-# API CLIENT (MongoDB через Backend)
+# API CLIENT
 # ==========================================
 
 class APIClient:
     """Клиент для работы с Backend API"""
-    
+
     def __init__(self, base_url: str):
         self.base_url = base_url
-    
+        logger.info(f"APIClient инициализирован: {self.base_url}")
+
     async def create_order(self, order_data: dict) -> dict:
         """Создать заявку"""
         try:
-            async with aiohttp.ClientSession() as session:
-                async with session.post(f"{self.base_url}/orders", json=order_data, timeout=10) as response:
+            async with aiohttp.ClientSession(timeout=REQUEST_TIMEOUT) as session:
+                async with session.post(f"{self.base_url}/orders", json=order_data) as response:
                     if response.status == 200:
                         return await response.json()
                     else:
-                        logger.error(f"Failed to create order: {response.status}")
+                        body = await response.text()
+                        logger.error(f"Failed to create order: {response.status} — {body}")
                         return None
         except Exception as e:
             logger.error(f"Error creating order: {e}")
             return None
-    
+
     async def get_orders(self, filters: dict = None) -> List[dict]:
         """Получить заявки с фильтрами"""
         try:
             params = filters or {}
-            async with aiohttp.ClientSession() as session:
-                async with session.get(f"{self.base_url}/orders", params=params, timeout=10) as response:
+            async with aiohttp.ClientSession(timeout=REQUEST_TIMEOUT) as session:
+                async with session.get(f"{self.base_url}/orders", params=params) as response:
                     if response.status == 200:
                         return await response.json()
                     else:
@@ -188,12 +194,12 @@ class APIClient:
         except Exception as e:
             logger.error(f"Error getting orders: {e}")
             return []
-    
+
     async def update_order(self, order_id: str, updates: dict) -> Optional[dict]:
         """Обновить заявку"""
         try:
-            async with aiohttp.ClientSession() as session:
-                async with session.patch(f"{self.base_url}/orders/{order_id}", json=updates, timeout=10) as response:
+            async with aiohttp.ClientSession(timeout=REQUEST_TIMEOUT) as session:
+                async with session.patch(f"{self.base_url}/orders/{order_id}", json=updates) as response:
                     if response.status == 200:
                         return await response.json()
                     else:
@@ -202,12 +208,12 @@ class APIClient:
         except Exception as e:
             logger.error(f"Error updating order: {e}")
             return None
-    
+
     async def approve_order(self, order_id: str) -> Optional[dict]:
         """Одобрить заявку"""
         try:
-            async with aiohttp.ClientSession() as session:
-                async with session.patch(f"{self.base_url}/orders/{order_id}/approve", timeout=10) as response:
+            async with aiohttp.ClientSession(timeout=REQUEST_TIMEOUT) as session:
+                async with session.patch(f"{self.base_url}/orders/{order_id}/approve") as response:
                     if response.status == 200:
                         return await response.json()
                     else:
@@ -216,12 +222,12 @@ class APIClient:
         except Exception as e:
             logger.error(f"Error approving order: {e}")
             return None
-    
+
     async def reject_order(self, order_id: str) -> Optional[dict]:
         """Отклонить заявку"""
         try:
-            async with aiohttp.ClientSession() as session:
-                async with session.patch(f"{self.base_url}/orders/{order_id}/reject", timeout=10) as response:
+            async with aiohttp.ClientSession(timeout=REQUEST_TIMEOUT) as session:
+                async with session.patch(f"{self.base_url}/orders/{order_id}/reject") as response:
                     if response.status == 200:
                         return await response.json()
                     else:
@@ -230,23 +236,23 @@ class APIClient:
         except Exception as e:
             logger.error(f"Error rejecting order: {e}")
             return None
-    
+
     async def delete_order(self, order_id: str) -> bool:
         """Удалить заявку"""
         try:
-            async with aiohttp.ClientSession() as session:
-                async with session.delete(f"{self.base_url}/orders/{order_id}", timeout=10) as response:
+            async with aiohttp.ClientSession(timeout=REQUEST_TIMEOUT) as session:
+                async with session.delete(f"{self.base_url}/orders/{order_id}") as response:
                     return response.status == 200
         except Exception as e:
             logger.error(f"Error deleting order: {e}")
             return False
-    
+
     async def get_server_stats(self, project: str = None) -> List[dict]:
-        """Получить статистику по серверам"""
+        """Получить статистику по серверам (ПРОДАВЦЫ)"""
         try:
             params = {"project": project} if project else {}
-            async with aiohttp.ClientSession() as session:
-                async with session.get(f"{self.base_url}/orders/stats/servers", params=params, timeout=10) as response:
+            async with aiohttp.ClientSession(timeout=REQUEST_TIMEOUT) as session:
+                async with session.get(f"{self.base_url}/orders/stats/servers", params=params) as response:
                     if response.status == 200:
                         return await response.json()
                     else:
@@ -255,6 +261,19 @@ class APIClient:
             logger.error(f"Error getting server stats: {e}")
             return []
 
+    async def get_buyer_stats(self, project: str = None) -> List[dict]:
+        """Получить статистику по серверам (ПОКУПАТЕЛИ)"""
+        try:
+            params = {"project": project} if project else {}
+            async with aiohttp.ClientSession(timeout=REQUEST_TIMEOUT) as session:
+                async with session.get(f"{self.base_url}/orders/stats/buyers", params=params) as response:
+                    if response.status == 200:
+                        return await response.json()
+                    else:
+                        return []
+        except Exception as e:
+            logger.error(f"Error getting buyer stats: {e}")
+            return []
 
 # Инициализация
 bot = Bot(token=BOT_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
@@ -263,8 +282,20 @@ dp = Dispatcher(storage=storage)
 router = Router()
 api_client = APIClient(API_BASE_URL)
 
+# ==========================================
+# Уведомление Admin напрямую через бот
+# ==========================================
+async def notify_admin(text: str):
+    """Шлёт уведомление админу напрямую через бот (не через backend)"""
+    try:
+        await bot.send_message(chat_id=ADMIN_USER_ID, text=text)
+        logger.info(f"[ADMIN NOTIFY] Уведомление отправлено admin {ADMIN_USER_ID}")
+    except Exception as e:
+        logger.error(f"[ADMIN NOTIFY] Ошибка: {e}")
 
+# ==========================================
 # Меню
+# ==========================================
 def get_main_menu() -> InlineKeyboardMarkup:
     buttons = [
         [
@@ -290,32 +321,36 @@ def get_projects_menu() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 async def get_servers_menu(project_key: str, action: str = "buy") -> InlineKeyboardMarkup:
-    """Меню серверов с показом количества продавцов и виртов"""
+    """Меню серверов с показом количества продавцов/покупателей и виртов"""
     project = PROJECTS[project_key]
     servers = project["servers"]
     prices = project["prices"]
-    
-    # Получить статистику с сервера
-    stats_list = await api_client.get_server_stats(project=project_key)
+
+    if action == "buy":
+        stats_list = await api_client.get_server_stats(project=project_key)
+    else:
+        stats_list = await api_client.get_buyer_stats(project=project_key)
+
     stats_dict = {s["server_name"]: s for s in stats_list}
-    
+
     buttons = []
     for i in range(0, len(servers), 2):
         row = []
         for j in range(2):
             if i + j < len(servers):
                 server = servers[i + j]
-                server_data = prices.get(server, {"sellPrice": 700, "buyPrice": 350})
-                
-                # Показать статистику для покупки
+
                 stats = stats_dict.get(server, {})
-                if action == "buy" and stats:
-                    sellers_count = stats.get("total_sellers", 0)
+                if stats:
+                    if action == "buy":
+                        count = stats.get("total_sellers", 0)
+                    else:
+                        count = stats.get("total_buyers", 0)
                     total_kk = stats.get("total_amount", 0) // 1000000
-                    label = f"{server} ({sellers_count}чел, {total_kk}кк)"
+                    label = f"{server} ({count}чел, {total_kk}кк)"
                 else:
-                    label = server
-                
+                    label = f"{server} (0чел, 0кк)"
+
                 row.append(InlineKeyboardButton(
                     text=label,
                     callback_data=f"server_{project_key}_{server}"
@@ -329,12 +364,12 @@ def get_amount_menu(project_key: str, server: str, action: str = "buy") -> Inlin
     """Генерация меню с ценами на основе выбранного сервера"""
     prices = PROJECTS[project_key]["prices"]
     server_data = prices.get(server, {"sellPrice": 700, "buyPrice": 350})
-    
+
     if action == "buy":
         price_per_kk = server_data["sellPrice"]
     else:
         price_per_kk = server_data["buyPrice"]
-    
+
     buttons = []
     for i in range(0, len(VIRT_AMOUNTS_KK), 3):
         row = []
@@ -349,7 +384,7 @@ def get_amount_menu(project_key: str, server: str, action: str = "buy") -> Inlin
                 ))
         if row:
             buttons.append(row)
-    
+
     buttons.append([InlineKeyboardButton(text="💰 Другая сумма", callback_data="amount_custom")])
     buttons.append([InlineKeyboardButton(text="◀️ Назад", callback_data="back_to_servers")])
     return InlineKeyboardMarkup(inline_keyboard=buttons)
@@ -431,7 +466,7 @@ async def cmd_start(message: Message, state: FSMContext):
     user_id = message.from_user.id
     username = message.from_user.username
     first_name = message.from_user.first_name
-    
+
     # Проверка подписки
     if not await is_subscribed(user_id):
         text = "<b>⚠️ Чтобы использовать бота, подпишитесь на канал:\n\n👉 @PatrickVirts</b>"
@@ -442,7 +477,7 @@ async def cmd_start(message: Message, state: FSMContext):
         return
 
     await state.clear()
-    
+
     welcome_text = "<b>Привет! Благодарим за выбор нашего магазина.</b>"
     photo_path = MENU_IMAGES["main"]
     if os.path.exists(photo_path):
@@ -472,20 +507,19 @@ async def cmd_help(message: Message):
 @router.message(Command("stats"))
 async def cmd_stats(message: Message):
     user_id = message.from_user.id
-    
-    # Получить заявки пользователя
+
     orders = await api_client.get_orders({"user_id": user_id, "source": "bot"})
-    
+
     stats_text = f"""<b>📊 Ваша статистика
 
-👤 Пользователь: {message.from_user.first_name}
-📝 Username: @{message.from_user.username or 'Не указано'}
+💤 Пользователь: {message.from_user.first_name}
+🔐 Username: @{message.from_user.username or 'Не указано'}
 📦 Количество заявок: {len(orders)}</b>"""
-    
+
     await message.answer(stats_text)
 
 # ========================================
-# АДМИН КОМАНДЫ (обновленные для API)
+# АДМИН КОМАНДЫ
 # ========================================
 
 def is_admin(user_id: int) -> bool:
@@ -498,7 +532,7 @@ async def cmd_admin(message: Message):
     if not is_admin(message.from_user.id):
         await message.answer("<b>❌ Доступ запрещен</b>")
         return
-    
+
     admin_text = """<b>👑 Админ-панель
 
 Доступные команды:
@@ -518,7 +552,7 @@ async def cmd_admin(message: Message):
 📊 Статистика:
 /stats_all - Общая статистика
 /prices - Текущие цены серверов</b>"""
-    
+
     await message.answer(admin_text)
 
 @router.message(Command("orders"))
@@ -527,16 +561,15 @@ async def cmd_orders(message: Message):
     if not is_admin(message.from_user.id):
         await message.answer("<b>❌ Доступ запрещен</b>")
         return
-    
+
     orders = await api_client.get_orders()
-    
+
     if not orders:
         await message.answer("<b>📋 Нет активных заявок</b>")
         return
-    
-    # Последние 20 заявок
+
     recent_orders = orders[:20]
-    
+
     text = "<b>📋 Последние заявки:</b>\n\n"
     for order in recent_orders:
         action = "🛒 Покупка" if order.get("order_type") == "buy" else "💰 Продажа"
@@ -548,8 +581,7 @@ async def cmd_orders(message: Message):
         status = order.get("status", "pending")
         order_id = order.get("id", "?")
         created_at = order.get("created_at", "")
-        
-        # Форматировать дату
+
         if isinstance(created_at, str):
             try:
                 dt = datetime.fromisoformat(created_at.replace('Z', '+00:00'))
@@ -558,19 +590,19 @@ async def cmd_orders(message: Message):
                 date_str = created_at[:16]
         else:
             date_str = "?"
-        
+
         status_emoji = "✅" if status == "approved" else "⏳" if status == "pending" else "❌"
-        
+
         text += f"""<b>{action}</b> {status_emoji}
-👤 @{username} | 🎮 {project} - {server}
+💤 @{username} | 🎮 {project} - {server}
 💎 {amount}кк | 💵 {price}₽
 📅 {date_str}
 🆔 <code>{order_id[:8]}</code>
 
 """
-    
+
     text += "\n<i>Используйте команды для управления заявками</i>"
-    
+
     await message.answer(text)
 
 @router.message(Command("orders_buy"))
@@ -579,15 +611,15 @@ async def cmd_orders_buy(message: Message):
     if not is_admin(message.from_user.id):
         await message.answer("<b>❌ Доступ запрещен</b>")
         return
-    
+
     orders = await api_client.get_orders({"order_type": "buy"})
-    
+
     if not orders:
         await message.answer("<b>🛒 Нет заявок на покупку</b>")
         return
-    
+
     recent_orders = orders[:15]
-    
+
     text = "<b>🛒 Заявки на покупку:</b>\n\n"
     for order in recent_orders:
         username = order.get("username", "?")
@@ -595,10 +627,10 @@ async def cmd_orders_buy(message: Message):
         amount = order.get("amount", 0) // 1000
         price = order.get("price", 0)
         order_id = order.get("id", "?")
-        
+
         text += f"<b>🆔</b> <code>{order_id[:8]}</code>\n"
         text += f"@{username} | {server} | {amount}кк | {price}₽\n\n"
-    
+
     await message.answer(text)
 
 @router.message(Command("orders_sell"))
@@ -607,15 +639,15 @@ async def cmd_orders_sell(message: Message):
     if not is_admin(message.from_user.id):
         await message.answer("<b>❌ Доступ запрещен</b>")
         return
-    
+
     orders = await api_client.get_orders({"order_type": "sell"})
-    
+
     if not orders:
         await message.answer("<b>💰 Нет заявок на продажу</b>")
         return
-    
+
     recent_orders = orders[:15]
-    
+
     text = "<b>💰 Заявки на продажу:</b>\n\n"
     for order in recent_orders:
         username = order.get("username", "?")
@@ -624,12 +656,12 @@ async def cmd_orders_sell(message: Message):
         price = order.get("price", 0)
         status = order.get("status", "pending")
         order_id = order.get("id", "?")
-        
+
         status_text = "✅ Одобрено" if status == "approved" else "⏳ Ожидает" if status == "pending" else "❌ Отклонено"
-        
+
         text += f"<b>🆔</b> <code>{order_id[:8]}</code> | {status_text}\n"
         text += f"@{username} | {server} | {amount}кк | {price}₽\n\n"
-    
+
     await message.answer(text)
 
 @router.message(Command("orders_pending"))
@@ -638,13 +670,13 @@ async def cmd_orders_pending(message: Message):
     if not is_admin(message.from_user.id):
         await message.answer("<b>❌ Доступ запрещен</b>")
         return
-    
+
     orders = await api_client.get_orders({"status": "pending"})
-    
+
     if not orders:
         await message.answer("<b>✅ Нет заявок ожидающих модерации</b>")
         return
-    
+
     text = "<b>⏳ Заявки на модерации:</b>\n\n"
     for order in orders[:15]:
         action = "🛒 Покупка" if order.get("order_type") == "buy" else "💰 Продажа"
@@ -653,12 +685,12 @@ async def cmd_orders_pending(message: Message):
         amount = order.get("amount", 0) // 1000
         price = order.get("price", 0)
         order_id = order.get("id", "?")
-        
+
         text += f"<b>{action}</b>\n"
         text += f"🆔 <code>{order_id[:8]}</code>\n"
         text += f"@{username} | {server} | {amount}кк | {price}₽\n"
         text += f"/approve_{order_id[:8]} | /reject_{order_id[:8]}\n\n"
-    
+
     await message.answer(text)
 
 @router.message(Command("prices"))
@@ -667,11 +699,11 @@ async def cmd_prices(message: Message):
     if not is_admin(message.from_user.id):
         await message.answer("<b>❌ Доступ запрещен</b>")
         return
-    
+
     text = "<b>💰 Цены GTA5RP (₽ за 1кк):</b>\n\n"
     for server, data in GTA5RP_SERVERS.items():
         text += f"{server}: покупка {data['sellPrice']}₽ | продажа {data['buyPrice']}₽\n"
-    
+
     await message.answer(text)
 
 @router.message(F.text.regexp(r"^/approve_(.+)$"))
@@ -680,30 +712,27 @@ async def cmd_approve_order(message: Message):
     if not is_admin(message.from_user.id):
         await message.answer("<b>❌ Доступ запрещен</b>")
         return
-    
+
     try:
-        # Извлечь ID из команды
         short_id = message.text.split("_")[1]
-        
-        # Найти полный ID
+
         orders = await api_client.get_orders()
         order = next((o for o in orders if o["id"].startswith(short_id)), None)
-        
+
         if not order:
             await message.answer(f"<b>❌ Заявка не найдена</b>")
             return
-        
-        # Одобрить заявку
+
         updated_order = await api_client.approve_order(order["id"])
-        
+
         if updated_order:
             await message.answer(f"""<b>✅ Заявка одобрена</b>
 
-👤 @{order.get('username')}
+💤 @{order.get('username')}
 🎮 {order.get('project')} - {order.get('server_name')}
 💎 {order.get('amount', 0) // 1000}кк
 💵 {order.get('price')}₽""")
-            
+
             # Уведомить пользователя
             try:
                 user_id = order.get("user_id")
@@ -732,26 +761,26 @@ async def cmd_reject_order(message: Message):
     if not is_admin(message.from_user.id):
         await message.answer("<b>❌ Доступ запрещен</b>")
         return
-    
+
     try:
         short_id = message.text.split("_")[1]
-        
+
         orders = await api_client.get_orders()
         order = next((o for o in orders if o["id"].startswith(short_id)), None)
-        
+
         if not order:
             await message.answer(f"<b>❌ Заявка не найдена</b>")
             return
-        
+
         updated_order = await api_client.reject_order(order["id"])
-        
+
         if updated_order:
             await message.answer(f"""<b>❌ Заявка отклонена</b>
 
-👤 @{order.get('username')}
+💤 @{order.get('username')}
 🎮 {order.get('project')} - {order.get('server_name')}
 💎 {order.get('amount', 0) // 1000}кк""")
-            
+
             # Уведомить пользователя
             try:
                 user_id = order.get("user_id")
@@ -779,23 +808,23 @@ async def cmd_delete_order(message: Message):
     if not is_admin(message.from_user.id):
         await message.answer("<b>❌ Доступ запрещен</b>")
         return
-    
+
     try:
         short_id = message.text.split("_")[1]
-        
+
         orders = await api_client.get_orders()
         order = next((o for o in orders if o["id"].startswith(short_id)), None)
-        
+
         if not order:
             await message.answer(f"<b>❌ Заявка не найдена</b>")
             return
-        
+
         success = await api_client.delete_order(order["id"])
-        
+
         if success:
             await message.answer(f"""<b>🗑 Заявка удалена</b>
 
-👤 @{order.get('username')}
+💤 @{order.get('username')}
 🎮 {order.get('project')} - {order.get('server_name')}
 💎 {order.get('amount', 0) // 1000}кк""")
         else:
@@ -810,34 +839,33 @@ async def cmd_edit_order(message: Message):
     if not is_admin(message.from_user.id):
         await message.answer("<b>❌ Доступ запрещен</b>")
         return
-    
+
     try:
         parts = message.text.split("_")
         short_id = parts[1]
-        new_amount = int(parts[2]) * 1000  # конвертировать кк в вирты
-        
+        new_amount = int(parts[2]) * 1000
+
         orders = await api_client.get_orders()
         order = next((o for o in orders if o["id"].startswith(short_id)), None)
-        
+
         if not order:
             await message.answer(f"<b>❌ Заявка не найдена</b>")
             return
-        
-        # Пересчитать цену
+
         old_amount = order.get("amount", 0)
         old_price = order.get("price", 0)
         price_per_virt = old_price / old_amount if old_amount > 0 else 0
         new_price = new_amount * price_per_virt
-        
+
         updated_order = await api_client.update_order(order["id"], {
             "amount": new_amount,
             "price": new_price
         })
-        
+
         if updated_order:
             await message.answer(f"""<b>✏️ Заявка обновлена</b>
 
-👤 @{order.get('username')}
+💤 @{order.get('username')}
 🎮 {order.get('project')} - {order.get('server_name')}
 💎 Было: {old_amount // 1000}кк → Стало: {new_amount // 1000}кк
 💵 Было: {old_price}₽ → Стало: {new_price}₽""")
@@ -852,13 +880,13 @@ async def cmd_edit_order(message: Message):
 async def handle_action(callback: CallbackQuery, state: FSMContext):
     if not await subscription_guard(callback):
         return
-    
+
     action = callback.data.split("_")[1]
     await state.update_data(action=action)
     await state.set_state(UserStates.selecting_project)
-    
+
     text = "<b>Выбери необходимый проект:</b>"
-    
+
     await send_or_edit_message(callback, text, get_projects_menu(), MENU_IMAGES.get("projects"))
     await callback.answer()
 
@@ -867,19 +895,21 @@ async def handle_action(callback: CallbackQuery, state: FSMContext):
 async def handle_project(callback: CallbackQuery, state: FSMContext):
     if not await subscription_guard(callback):
         return
-    
+
     project_key = callback.data.split("_")[1]
     await state.update_data(project=project_key)
     await state.set_state(UserStates.selecting_server)
-    
+
     project = PROJECTS[project_key]
     data = await state.get_data()
     action = data.get("action", "buy")
-    
+
     text = f"<b>Выбери необходимый сервер:</b>"
     if action == "buy":
         text += "\n\n<i>Показано количество продавцов и виртов</i>"
-    
+    else:
+        text += "\n\n<i>Показано количество покупателей и виртов</i>"
+
     photo_path = project.get("photo")
     servers_menu = await get_servers_menu(project_key, action)
     await send_or_edit_message(callback, text, servers_menu, photo_path)
@@ -890,19 +920,19 @@ async def handle_project(callback: CallbackQuery, state: FSMContext):
 async def handle_server(callback: CallbackQuery, state: FSMContext):
     if not await subscription_guard(callback):
         return
-    
+
     parts = callback.data.split("_", 2)
     project_key = parts[1]
     server = parts[2]
-    
+
     await state.update_data(server=server, project=project_key)
-    
+
     data = await state.get_data()
     action = data.get("action")
-    
+
     buy_price = get_server_price(project_key, server, "buy")
     sell_price = get_server_price(project_key, server, "sell")
-    
+
     if action == "buy":
         await state.set_state(UserStates.selecting_amount)
         text = f"""<b>🎮 Сервер: {server}
@@ -917,7 +947,7 @@ async def handle_server(callback: CallbackQuery, state: FSMContext):
 
 Выбери количество виртов для продажи:</b>"""
         await send_or_edit_message(callback, text, get_amount_menu(project_key, server, "sell"))
-    
+
     await callback.answer()
 
 # --- Обработчик выбора количества виртов ---
@@ -925,16 +955,16 @@ async def handle_server(callback: CallbackQuery, state: FSMContext):
 async def handle_amount(callback: CallbackQuery, state: FSMContext):
     if not await subscription_guard(callback):
         return
-    
+
     data = await state.get_data()
     project = data.get("project")
     server = data.get("server")
     action = data.get("action", "buy")
-    
+
     if callback.data == "amount_custom":
         action_word = "куплю" if action == "buy" else "продам"
         action_btn = "Купить" if action == "buy" else "Продать"
-        
+
         explanation_text = f"""<b>Для завершения нажмите «{action_btn}».
 
 1️⃣ Проект и сервер: {PROJECTS[project]['name']}, {server}
@@ -942,26 +972,25 @@ async def handle_amount(callback: CallbackQuery, state: FSMContext):
 3️⃣ Способ оплаты (Сбербанк/Тинькофф, СБП, Карта KZT, Крипта, Скины).
 
 Пример сообщения: {PROJECTS[project]['name']}, {server}, {action_word} [количество]kk ✅</b>"""
-        
+
         menu = InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text=f"✅ {action_btn}", url=f"https://t.me/{SUPPORT_USERNAME}")],
             [InlineKeyboardButton(text="◀️ Назад", callback_data="back_to_main")]
         ])
-        
+
         await send_or_edit_message(callback, explanation_text, menu)
         await state.clear()
         await callback.answer()
         return
-    
+
     parts = callback.data.split("_")
     amount_kk = int(parts[1])
     price = float(parts[2])
-    amount = amount_kk * 1_000_000  # конвертировать кк в вирты
-    
-    # Создать заявку через API
+    amount = amount_kk * 1_000_000
+
     user_id = callback.from_user.id
     username = callback.from_user.username or "без_username"
-    
+
     order_data = {
         "order_type": action,
         "project": project,
@@ -972,9 +1001,9 @@ async def handle_amount(callback: CallbackQuery, state: FSMContext):
         "price": price,
         "source": "bot"
     }
-    
+
     created_order = await api_client.create_order(order_data)
-    
+
     if created_order:
         if action == "buy":
             order_text = f"""<b>✅ Заявка на покупку создана!</b>
@@ -995,17 +1024,32 @@ async def handle_amount(callback: CallbackQuery, state: FSMContext):
 💵 Вы получите: {price}₽
 
 Ожидайте подтверждения от администратора."""
-        
+
         action_btn = "Купить" if action == "buy" else "Продать"
         menu = InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text=f"✅ {action_btn}", url=f"https://t.me/{SUPPORT_USERNAME}")],
             [InlineKeyboardButton(text="◀️ В главное меню", callback_data="back_to_main")]
         ])
-        
+
         await send_or_edit_message(callback, order_text, menu)
+
+        # ✅ ИСПРАВЛЕНО: Уведомление admin напрямую через бот при любой новой заявке
+        type_label = "🛒 Покупка" if action == "buy" else "💰 Продажа"
+        status_label = "✅ Одобрено" if action == "buy" else "⏳ Ожидает модерации"
+        await notify_admin(
+            f"🧾 <b>Новая заявка</b>\n\n"
+            f"Тип: <b>{type_label}</b>\n"
+            f"Статус: {status_label}\n"
+            f"Пользователь: @{username}\n"
+            f"Проект: {PROJECTS[project]['name']}\n"
+            f"Сервер: {server}\n"
+            f"Количество: {amount_kk}кк\n"
+            f"Сумма: {price}₽\n"
+            f"Источник: bot"
+        )
     else:
         await callback.answer("❌ Ошибка создания заявки", show_alert=True)
-    
+
     await state.clear()
     await callback.answer()
 
@@ -1014,10 +1058,10 @@ async def handle_amount(callback: CallbackQuery, state: FSMContext):
 async def handle_info(callback: CallbackQuery):
     if not await subscription_guard(callback):
         return
-    
+
     info_type = callback.data.split("_")[1]
     text = INFO_TEXTS.get(info_type, "<b>Информация не найдена</b>")
-    
+
     await send_or_edit_message(callback, text, get_back_menu())
     await callback.answer()
 
@@ -1026,7 +1070,7 @@ async def handle_info(callback: CallbackQuery):
 async def back_to_main(callback: CallbackQuery, state: FSMContext):
     if not await subscription_guard(callback):
         return
-    
+
     await state.clear()
     text = "<b>Привет! Благодарим за выбор нашего магазина.</b>"
     await send_or_edit_message(callback, text, get_main_menu(), MENU_IMAGES.get("main"))
@@ -1036,7 +1080,7 @@ async def back_to_main(callback: CallbackQuery, state: FSMContext):
 async def back_to_projects(callback: CallbackQuery, state: FSMContext):
     if not await subscription_guard(callback):
         return
-    
+
     await state.set_state(UserStates.selecting_project)
     text = "<b>Выбери необходимый проект:</b>"
     await send_or_edit_message(callback, text, get_projects_menu(), MENU_IMAGES.get("projects"))
@@ -1046,10 +1090,10 @@ async def back_to_projects(callback: CallbackQuery, state: FSMContext):
 async def back_to_servers(callback: CallbackQuery, state: FSMContext):
     if not await subscription_guard(callback):
         return
-    
+
     data = await state.get_data()
     project_key = data.get("project")
-    
+
     if project_key:
         await state.set_state(UserStates.selecting_server)
         project = PROJECTS[project_key]
@@ -1060,11 +1104,13 @@ async def back_to_servers(callback: CallbackQuery, state: FSMContext):
         await send_or_edit_message(callback, text, servers_menu, photo_path)
     else:
         await back_to_projects(callback, state)
-    
+
     await callback.answer()
 
 async def main():
-    logger.info("Бот запускается с единой базой данных MongoDB...")
+    logger.info("Бот запускается...")
+    logger.info(f"API_BASE_URL: {API_BASE_URL}")
+    logger.info(f"ADMIN_USER_ID: {ADMIN_USER_ID}")
     dp.include_router(router)
     await bot.delete_webhook(drop_pending_updates=True)
     logger.info("Бот успешно запущен!")
