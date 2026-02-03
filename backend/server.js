@@ -140,35 +140,7 @@ const postTelegramMessage = async (payload) => {
       body: JSON.stringify(payload)
     });
   }
-
-  const body = JSON.stringify(payload);
-
-  return new Promise((resolve, reject) => {
-    const req = https.request(
-      {
-        hostname: url.hostname,
-        path: `${url.pathname}${url.search}`,
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Content-Length': Buffer.byteLength(body)
-        }
-      },
-      (res) => {
-        let data = '';
-        res.on('data', (chunk) => {
-          data += chunk;
-        });
-        res.on('end', () => {
-          resolve({
-            ok: res.statusCode >= 200 && res.statusCode < 300,
-            status: res.statusCode,
-            text: async () => data
-          });
-        });
-      }
-    );
-
+ main
     req.on('error', reject);
     req.write(body);
     req.end();
@@ -176,11 +148,7 @@ const postTelegramMessage = async (payload) => {
 };
 
 const sendTelegramNotificationAsync = (message, chatIdOverride = null) => {
-  // Fire and forget - don't await, don't block
-  const chatId = chatIdOverride || ADMIN_CHAT_ID || ADMIN_USER_ID;
-
-  if (!BOT_TOKEN || !chatId) {
-    console.warn('[TELEGRAM] Skipped: BOT_TOKEN or ADMIN_CHAT_ID/ADMIN_USER_ID not set');
+ main
     return;
   }
 
@@ -194,6 +162,7 @@ const sendTelegramNotificationAsync = (message, chatIdOverride = null) => {
         text: message,
         parse_mode: 'HTML',
         disable_web_page_preview: true
+
       });
 
       if (!response.ok) {
