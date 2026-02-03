@@ -56,10 +56,44 @@ const ADMIN_USERNAME = process.env.REACT_APP_ADMIN_USERNAME || 'patrickprodast';
 const BOT_TOKEN = process.env.REACT_APP_BOT_TOKEN || '';
 const ADMIN_CHAT_ID = process.env.REACT_APP_ADMIN_CHAT_ID || '';
 
-// Backend API URL: сначала переменная окружения, иначе относительный /api
-const API =
+const normalizeApiBase = (baseUrl) => {
+  if (!baseUrl) {
+    return '';
+  }
+
+  const trimmed = baseUrl.replace(/\/+$/, '');
+  return trimmed.endsWith('/api') ? trimmed : `${trimmed}/api`;
+};
+
+const getStoredBackendUrl = () => {
+  if (typeof window === 'undefined') {
+    return '';
+  }
+
+  const params = new URLSearchParams(window.location.search);
+  const paramUrl = params.get('backend');
+  if (paramUrl) {
+    try {
+      localStorage.setItem('backend_url', paramUrl);
+    } catch {
+      // ignore storage errors
+    }
+    return paramUrl;
+  }
+
+  try {
+    return localStorage.getItem('backend_url') || '';
+  } catch {
+    return '';
+  }
+};
+
+// Backend API URL: env -> query/localStorage -> same-origin /api
+const API = normalizeApiBase(
   process.env.REACT_APP_BACKEND_URL ||
-  (typeof window !== 'undefined' ? `${window.location.origin}/api` : '');
+  getStoredBackendUrl() ||
+  (typeof window !== 'undefined' ? window.location.origin : '')
+);
 
 // ==========================================
 // ERROR CODES (matching backend)
@@ -104,9 +138,22 @@ const validateServerId = (id) => {
   return !isNaN(numId) && numId > 0 && numId <= SERVERS.length;
 };
 
-const validateAmount = (amount) => {
+const normalizeAmount = (amount) => {
   const numAmount = parseInt(amount);
-  return !isNaN(numAmount) && numAmount >= 100000 && numAmount <= 100000000;
+  if (Number.isNaN(numAmount)) {
+    return 0;
+  }
+
+  if (numAmount > 0 && numAmount < 100000) {
+    return numAmount * 1000000;
+  }
+
+  return numAmount;
+};
+
+const validateAmount = (amount) => {
+  const normalizedAmount = normalizeAmount(amount);
+  return normalizedAmount >= 100000 && normalizedAmount <= 100000000;
 };
 
 // ==========================================
@@ -158,7 +205,7 @@ const createOrder = async (orderData) => {
       server_id: orderData.serverId,
       user_id: parseInt(orderData.userId) || 0,
       username: sanitizeInput(orderData.username),
-      amount: parseInt(orderData.amount),
+      amount: normalizeAmount(orderData.amount),
       price: parseFloat(orderData.totalPrice),
       contact: sanitizeInput(orderData.contact || ''),
       refund_enabled: orderData.refundEnabled !== false,
