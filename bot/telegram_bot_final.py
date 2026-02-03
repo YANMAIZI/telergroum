@@ -956,7 +956,7 @@ async def handle_amount(callback: CallbackQuery, state: FSMContext):
     parts = callback.data.split("_")
     amount_kk = int(parts[1])
     price = float(parts[2])
-    amount = amount_kk * 1000  # конвертировать кк в вирты
+    amount = amount_kk * 1_000_000  # конвертировать кк в вирты
     
     # Создать заявку через API
     user_id = callback.from_user.id
