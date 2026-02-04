@@ -945,6 +945,107 @@ const ServerSelection = ({ type }) => {
 };
 
 
+// Confirmation Modal Component with Warning
+const ConfirmationModal = ({ isOpen, onClose, onConfirm, type = 'buy' }) => {
+  const [isChecked, setIsChecked] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      setIsChecked(false);
+    }
+  }, [isOpen]);
+
+  if (!isOpen) return null;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.9, opacity: 0 }}
+        onClick={(e) => e.stopPropagation()}
+        className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl p-6 w-full max-w-md border-2 border-yellow-500/50 shadow-2xl"
+      >
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-12 h-12 bg-yellow-500/20 rounded-full flex items-center justify-center">
+            <Info className="w-6 h-6 text-yellow-400" />
+          </div>
+          <h3 className="text-xl font-bold text-white">Важное предупреждение!</h3>
+        </div>
+
+        <div className="bg-yellow-500/10 border-2 border-yellow-500/30 rounded-xl p-4 mb-4">
+          <p className="text-yellow-200 font-semibold text-center mb-3 text-lg">
+            ⚠️ ОБЯЗАТЕЛЬНОЕ УСЛОВИЕ ⚠️
+          </p>
+          <p className="text-white text-sm leading-relaxed mb-3">
+            ВЫ ДОЛЖНЫ ОТПИСАТЬ В ЛС <span className="font-bold text-blue-400">@patrickprodast</span> И ДАТЬ СКРИН НАЛИЧИЯ {type === 'buy' ? 'ДЕНЕГ' : 'ВИРТОВ'} ДЛЯ СДЕЛКИ!
+          </p>
+          <p className="text-gray-300 text-xs leading-relaxed">
+            Без подтверждения наличия средств/виртов ваша заявка не будет обработана. Это защита от мошенничества.
+          </p>
+        </div>
+
+        <div className="mb-5">
+          <label className="flex items-start gap-3 cursor-pointer group">
+            <div className="relative flex-shrink-0 mt-0.5">
+              <input
+                type="checkbox"
+                checked={isChecked}
+                onChange={(e) => setIsChecked(e.target.checked)}
+                className="w-5 h-5 rounded border-2 border-gray-600 bg-gray-800 checked:bg-green-600 checked:border-green-600 cursor-pointer transition-colors"
+              />
+              {isChecked && (
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  className="absolute inset-0 flex items-center justify-center pointer-events-none"
+                >
+                  <Check className="w-4 h-4 text-white" />
+                </motion.div>
+              )}
+            </div>
+            <span className="text-sm text-gray-300 group-hover:text-white transition-colors">
+              Я понимаю и обязуюсь отписать @patrickprodast со скрином наличия {type === 'buy' ? 'денег' : 'виртов'}
+            </span>
+          </label>
+        </div>
+
+        <div className="flex gap-3">
+          <button
+            onClick={onClose}
+            className="flex-1 px-4 py-3 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-colors font-medium"
+          >
+            Отмена
+          </button>
+          <button
+            onClick={() => {
+              if (isChecked) {
+                onConfirm();
+                onClose();
+              }
+            }}
+            disabled={!isChecked}
+            className={`flex-1 px-4 py-3 rounded-lg font-medium transition-all flex items-center justify-center gap-2 ${
+              isChecked
+                ? 'bg-green-600 text-white hover:bg-green-700 hover:scale-105'
+                : 'bg-gray-800 text-gray-500 cursor-not-allowed opacity-50'
+            }`}
+          >
+            <CheckCircle className="w-5 h-5" />
+            Подтвердить
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+};
+
 // Quantity Input Modal Component for Keyboard Entry
 const QuantityInputModal = ({ isOpen, onClose, currentAmount, onConfirm, minAmount = 500000, maxAmount = 100000000 }) => {
   const [inputValue, setInputValue] = useState('');
@@ -1093,6 +1194,8 @@ const BuyVirtyFlow = () => {
   const [availableVirty, setAvailableVirty] = useState(null);
   const [isReservationOnly, setIsReservationOnly] = useState(false);
   const [showQuantityModal, setShowQuantityModal] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [pendingSubmit, setPendingSubmit] = useState(false);
 
   useEffect(() => {
     if (!API) return;
@@ -1165,6 +1268,12 @@ const BuyVirtyFlow = () => {
       return;
     }
 
+    // Show confirmation modal instead of submitting directly
+    setShowConfirmModal(true);
+  };
+
+  // Actual submission function after confirmation
+  const handleConfirmedSubmit = async () => {
     // Strict Telegram user validation
     const user = getCurrentUser();
     if (!user.userId) {
@@ -1489,6 +1598,14 @@ const BuyVirtyFlow = () => {
         minAmount={500000}
         maxAmount={100000000}
       />
+
+      {/* Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showConfirmModal}
+        onClose={() => setShowConfirmModal(false)}
+        onConfirm={handleConfirmedSubmit}
+        type="buy"
+      />
     </motion.div>
   );
 };
@@ -1524,6 +1641,7 @@ const SellVirtyFlow = () => {
   const [showSuccess, setShowSuccess] = useState(false);
   const [existingContribution, setExistingContribution] = useState(null);
   const [showQuantityModal, setShowQuantityModal] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   useEffect(() => {
     if (!API) return;
@@ -1584,6 +1702,12 @@ const SellVirtyFlow = () => {
       return;
     }
 
+    // Show confirmation modal instead of submitting directly
+    setShowConfirmModal(true);
+  };
+
+  // Actual submission function after confirmation
+  const handleConfirmedSubmit = async () => {
     // Strict Telegram user validation
     const user = getCurrentUser();
     if (!user.userId) {
@@ -1855,6 +1979,14 @@ const SellVirtyFlow = () => {
         onConfirm={(newAmount) => setAmount(newAmount)}
         minAmount={500000}
         maxAmount={100000000}
+      />
+
+      {/* Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showConfirmModal}
+        onClose={() => setShowConfirmModal(false)}
+        onConfirm={handleConfirmedSubmit}
+        type="sell"
       />
     </motion.div>
   );
