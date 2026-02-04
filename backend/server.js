@@ -91,8 +91,8 @@ const stmts = {
       COUNT(DISTINCT user_id) as total_sellers,
       SUM(amount) as total_amount
     FROM orders
-    WHERE order_type = 'sell' AND status = 'approved'
-    GROUP BY server_id
+    WHERE order_type = 'sell' AND status = 'approved' AND project = ?
+    GROUP BY server_name, server_id
   `),
 
   getBuyerStats: db.prepare(`
@@ -102,8 +102,8 @@ const stmts = {
       COUNT(DISTINCT user_id) as total_buyers,
       SUM(amount) as total_amount
     FROM orders
-    WHERE order_type = 'buy' AND status = 'approved'
-    GROUP BY server_id
+    WHERE order_type = 'buy' AND status = 'approved' AND project = ?
+    GROUP BY server_name, server_id
   `)
 };
 
@@ -470,7 +470,10 @@ app.delete('/api/orders/:id', (req, res) => {
 // GET /api/orders/stats/servers - Get server statistics for SELLERS
 app.get('/api/orders/stats/servers', (req, res) => {
   try {
-    const stats = stmts.getServerStats.all();
+    const { project } = req.query;
+    const projectFilter = project || 'GTA5RP';
+
+    const stats = stmts.getServerStats.all(projectFilter);
 
     res.json(stats.map(stat => ({
       server_name: stat.server_name,
@@ -488,7 +491,10 @@ app.get('/api/orders/stats/servers', (req, res) => {
 // GET /api/orders/stats/buyers - Get server statistics for BUYERS
 app.get('/api/orders/stats/buyers', (req, res) => {
   try {
-    const stats = stmts.getBuyerStats.all();
+    const { project } = req.query;
+    const projectFilter = project || 'GTA5RP';
+
+    const stats = stmts.getBuyerStats.all(projectFilter);
 
     res.json(stats.map(stat => ({
       server_name: stat.server_name,

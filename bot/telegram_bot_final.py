@@ -11,6 +11,10 @@ from datetime import datetime
 from typing import Dict, List, Optional
 import os
 import aiohttp
+from dotenv import load_dotenv
+
+# Загрузка .env файла
+load_dotenv()
 
 from aiogram import Bot, Dispatcher, F, Router
 from aiogram.filters import Command, CommandStart
