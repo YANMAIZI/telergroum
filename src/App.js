@@ -2455,9 +2455,14 @@ function App() {
     const gtaLogo = new Image();
     gtaLogo.src = '/gta_logo_new.jpg';
 
-    if (window.location.pathname !== '/' && !sessionStorage.getItem('virty-entry-allowed')) {
-      window.location.href = '/';
+    // Allow deep linking - removed strict redirect to '/'
+    if (!sessionStorage.getItem('virty-entry-allowed')) {
+      // Auto-allow entry if we are not at root (deep linking)
+      if (window.location.pathname !== '/') {
+        sessionStorage.setItem('virty-entry-allowed', '1');
+      }
     }
+
   }, []);
 
   if (isChecking) {

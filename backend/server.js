@@ -53,6 +53,12 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);
   CREATE INDEX IF NOT EXISTS idx_orders_type ON orders(order_type);
   CREATE INDEX IF NOT EXISTS idx_orders_server ON orders(server_id);
+
+  CREATE TABLE IF NOT EXISTS banned_users (
+    user_id INTEGER PRIMARY KEY,
+    reason TEXT,
+    banned_at TEXT DEFAULT (datetime('now'))
+  );
 `);
 
 console.log('✅ SQLite database initialized:', DB_PATH);
@@ -203,6 +209,31 @@ app.get('/api/health', (req, res) => {
     database: 'sqlite',
     timestamp: new Date().toISOString()
   });
+});
+
+// GET /api/banned/:id - Check if user is banned
+app.get('/api/banned/:id', (req, res) => {
+  try {
+    const userId = parseInt(req.params.id);
+    if (!userId) {
+      return res.json({ banned: false });
+    }
+
+    const bannedUser = db.prepare('SELECT * FROM banned_users WHERE user_id = ?').get(userId);
+
+    if (bannedUser) {
+      return res.json({
+        banned: true,
+        reason: bannedUser.reason,
+        banned_at: bannedUser.banned_at
+      });
+    }
+
+    res.json({ banned: false });
+  } catch (error) {
+    console.error('[GET /api/banned/:id] Error:', error.message);
+    res.json({ banned: false });
+  }
 });
 
 // GET /api/orders - Get all orders with optional filters
