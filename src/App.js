@@ -735,6 +735,8 @@ const PhoneHomeScreen = () => {
             <ProgressiveImage
               src={iconData.url}
               placeholder={iconData.thumb}
+              fallbackSrc={iconData.fallbackUrl}
+              fallbackPlaceholder={iconData.fallbackThumb}
               alt={iconData.name}
               className="w-full h-full object-cover"
             />
@@ -864,8 +866,18 @@ const ServerSelection = ({ type = 'buy' }) => {
               className="server-card-link"
             >
               <motion.div whileTap={{ scale: 0.99 }} className="server-card-modern">
+                <div className="server-card-bg">
+                  <ProgressiveImage
+                    src={server.banner}
+                    placeholder={server.bannerRemote || server.banner}
+                    alt={server.name}
+                    className="server-card-bg-img"
+                  />
+                </div>
                 <div className="server-card-header-modern">
                   <div className="server-info">
+                    <span className="server-id-modern">{String(server.id).padStart(2, '0')}</span>
+                    <span className="server-emoji-modern">{server.emoji || ''}</span>
                     <h3 className="server-name-modern">{server.name}</h3>
                   </div>
                   <span className={`server-badge-modern ${type === 'buy' ? 'badge-buy' : 'badge-sell'}`}>

@@ -3,24 +3,32 @@
 
 export const IOS_ICONS = {
   phone: {
-    url: 'https://cdn.jim-nielsen.com/ios/512/phone-2023-06-05.png?rf=512',
-    thumb: 'https://cdn.jim-nielsen.com/ios/512/phone-2023-06-05.png?rf=128',
-    name: 'Phone'
+    url: '/ios-icons/phone.png',
+    thumb: '/ios-icons/phone-128.png',
+    name: 'Phone',
+    fallbackUrl: 'https://cdn.jim-nielsen.com/ios/512/phone-2025-10-20.png?rf=1024',
+    fallbackThumb: 'https://cdn.jim-nielsen.com/ios/128/phone-2025-10-20.png?rf=1024'
   },
   messages: {
-    url: 'https://cdn.jim-nielsen.com/ios/512/messages-2023-06-05.png?rf=512',
-    thumb: 'https://cdn.jim-nielsen.com/ios/512/messages-2023-06-05.png?rf=128',
-    name: 'Messages'
+    url: '/ios-icons/messages.png',
+    thumb: '/ios-icons/messages-128.png',
+    name: 'Messages',
+    fallbackUrl: 'https://cdn.jim-nielsen.com/ios/512/messages-2025-10-20.png?rf=1024',
+    fallbackThumb: 'https://cdn.jim-nielsen.com/ios/128/messages-2025-10-20.png?rf=1024'
   },
   camera: {
-    url: 'https://cdn.jim-nielsen.com/ios/512/camera-2023-06-05.png?rf=512',
-    thumb: 'https://cdn.jim-nielsen.com/ios/512/camera-2023-06-05.png?rf=128',
-    name: 'Camera'
+    url: '/ios-icons/app-store-connect.png',
+    thumb: '/ios-icons/app-store-connect-128.png',
+    name: 'App Store Connect',
+    fallbackUrl: 'https://cdn.jim-nielsen.com/ios/512/app-store-connect-2025-10-27.png?rf=1024',
+    fallbackThumb: 'https://cdn.jim-nielsen.com/ios/128/app-store-connect-2025-10-27.png?rf=1024'
   },
   safari: {
-    url: 'https://cdn.jim-nielsen.com/ios/512/safari-2023-06-05.png?rf=512',
-    thumb: 'https://cdn.jim-nielsen.com/ios/512/safari-2023-06-05.png?rf=128',
-    name: 'Safari'
+    url: '/ios-icons/safari.png',
+    thumb: '/ios-icons/safari-128.png',
+    name: 'Safari',
+    fallbackUrl: 'https://cdn.jim-nielsen.com/ios/512/safari-2025-10-20.png?rf=1024',
+    fallbackThumb: 'https://cdn.jim-nielsen.com/ios/128/safari-2025-10-20.png?rf=1024'
   }
 };
 
