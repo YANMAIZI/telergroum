@@ -1,1 +1,17 @@
-providers = ["node"]
+[phases.setup]
+aptPkgs = ["...", "python3", "python3-pip"]
+
+[phases.install]
+cmds = [
+  "npm install",
+  "cd backend && npm install",
+  "pip3 install -r requirements.txt"
+]
+
+[phases.build]
+cmds = [
+  "npm run build"
+]
+
+[start]
+cmd = "npm start"
