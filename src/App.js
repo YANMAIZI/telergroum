@@ -10,6 +10,8 @@ import { Toaster, toast } from 'sonner';
 import '@/App.css';
 import axios from 'axios';
 import SERVERS from './servers';
+import ProgressiveImage from './components/ProgressiveImage';
+import { IOS_ICONS, GTA_LOGO, WALLPAPER } from './iosIcons';
 
 // ==========================================
 // ERROR BOUNDARY FOR STABILITY
@@ -71,7 +73,7 @@ const BannedScreen = () => {
         >
           <XCircle className="w-32 h-32 text-red-500 mx-auto drop-shadow-2xl" />
         </motion.div>
-        
+
         <motion.h1
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -80,7 +82,7 @@ const BannedScreen = () => {
         >
           🚫 Доступ заблокирован
         </motion.h1>
-        
+
         <motion.p
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -89,7 +91,7 @@ const BannedScreen = () => {
         >
           Ваш аккаунт был заблокирован администрацией.
         </motion.p>
-        
+
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -102,7 +104,7 @@ const BannedScreen = () => {
             Мы рассмотрим вашу ситуацию в течение 24 часов.
           </p>
         </motion.div>
-        
+
         <motion.a
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -197,11 +199,11 @@ const validateAmount = (amount) => {
 const getTelegramUser = () => {
   const tg = window.Telegram?.WebApp;
   const user = tg?.initDataUnsafe?.user;
-  
+
   if (!user || !user.id) {
     return { valid: false, error: 'NO_TELEGRAM_USER' };
   }
-  
+
   return {
     valid: true,
     userId: user.id.toString(),
@@ -222,7 +224,7 @@ const useBanCheck = () => {
   useEffect(() => {
     const checkBanStatus = async () => {
       const telegramUser = getTelegramUser();
-      
+
       if (!telegramUser.valid) {
         setIsChecking(false);
         return;
@@ -232,7 +234,7 @@ const useBanCheck = () => {
         const response = await axios.get(`${API}/banned/${telegramUser.userId}`, {
           timeout: 5000
         });
-        
+
         if (response.data && response.data.banned) {
           setIsBanned(true);
           console.log('User is banned:', response.data);
@@ -267,10 +269,10 @@ const createOrder = async (orderData) => {
       const banCheck = await axios.get(`${API}/banned/${orderData.userId}`, {
         timeout: 5000
       });
-      
+
       if (banCheck.data && banCheck.data.banned) {
-        return { 
-          success: false, 
+        return {
+          success: false,
           error: 'USER_BANNED',
           message: 'Вы заблокированы. Обратитесь к администратору.'
         };
@@ -300,23 +302,23 @@ const createOrder = async (orderData) => {
     };
 
     const response = await axios.post(`${API}/orders`, apiData, { timeout: 10000 });
-    
+
     if (response.data && response.data.success !== false) {
       return { success: true, data: response.data };
     }
-    
+
     return { success: false, error: response.data?.error || 'CREATE_FAILED' };
   } catch (error) {
     console.error('Error creating order:', error);
-    
+
     if (error.response?.data?.error === 'USER_BANNED') {
-      return { 
-        success: false, 
+      return {
+        success: false,
         error: 'USER_BANNED',
         message: 'Вы заблокированы. Обратитесь к администратору.'
       };
     }
-    
+
     const errorCode = error.response?.data?.error || 'NETWORK_ERROR';
     return { success: false, error: errorCode };
   }
@@ -562,10 +564,10 @@ const notifyNewSellOrder = async (order, serverName) => {
 
 const getCurrentUser = () => {
   const tgUser = getTelegramUser();
-  
+
   // Demo mode fallback for development only
   const isDemoMode = !tgUser.valid && (window.location.hostname === 'localhost' || process.env.NODE_ENV === 'development');
-  
+
   const user = {
     userId: tgUser.valid ? tgUser.userId : (isDemoMode ? 'demo123' : null),
     username: tgUser.valid ? tgUser.username : (isDemoMode ? 'demo_user' : null),
@@ -595,39 +597,6 @@ const getCurrentUser = () => {
 };
 
 // Status Bar Component - Now Fixed
-// Progressive Image Component for optimized loading
-const ProgressiveImage = ({ src, placeholder, alt = '', className = '', style = {} }) => {
-  const [imgSrc, setImgSrc] = useState(placeholder || src);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    const img = new Image();
-    img.src = src;
-    img.onload = () => {
-      setImgSrc(src);
-      setIsLoading(false);
-    };
-  }, [src]);
-
-  return (
-    <img
-      src={imgSrc}
-      alt={alt}
-      className={`${className} ${isLoading ? 'loading' : 'loaded'}`}
-      style={style}
-      loading="lazy"
-      decoding="async"
-    />
-  );
-};
-
-// iOS Icons - Optimized URLs with smaller sizes for faster loading
-const IOS_ICONS = {
-  phone: 'https://cdn.jim-nielsen.com/ios/512/phone-2023-06-05.png?rf=256',
-  messages: 'https://cdn.jim-nielsen.com/ios/512/messages-2023-06-05.png?rf=256',
-  camera: 'https://cdn.jim-nielsen.com/ios/512/camera-2023-06-05.png?rf=256',
-  safari: 'https://cdn.jim-nielsen.com/ios/512/safari-2023-06-05.png?rf=256'
-};
 
 const StatusBar = () => {
   const [currentTime, setCurrentTime] = useState('');
@@ -679,7 +648,7 @@ const PhoneHomeScreen = () => {
   // Preload wallpaper in background
   useEffect(() => {
     const img = new Image();
-    img.src = '/phone_wallpaper.jpg';
+    img.src = WALLPAPER.url;
     img.onload = () => setWallpaperLoaded(true);
   }, []);
 
@@ -689,7 +658,7 @@ const PhoneHomeScreen = () => {
       animate={{ opacity: 1 }}
       className="phone-home-screen"
       style={{
-        backgroundImage: wallpaperLoaded ? 'url(/phone_wallpaper.jpg)' : 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
+        backgroundImage: wallpaperLoaded ? `url(${WALLPAPER.url})` : 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
         backgroundSize: 'cover',
         backgroundPosition: 'center'
       }}
@@ -713,8 +682,8 @@ const PhoneHomeScreen = () => {
         >
           <div className="app-icon-bg bg-transparent shadow-none relative overflow-hidden">
             <ProgressiveImage
-              src="/gta_logo_new.jpg"
-              placeholder="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect fill='%23333' width='100' height='100'/%3E%3C/svg%3E"
+              src={GTA_LOGO.url}
+              placeholder={GTA_LOGO.thumb}
               alt="GTA 5 RP Exchange"
               className="app-icon-image"
             />
@@ -737,7 +706,7 @@ const PhoneHomeScreen = () => {
 
       {/* Enhanced Dock with Real iOS Icons and Frosted Glass */}
       <div className="phone-dock frosted-glass">
-        {Object.entries(IOS_ICONS).map(([key, iconUrl], index) => (
+        {Object.entries(IOS_ICONS).map(([key, iconData], index) => (
           <motion.div
             key={key}
             initial={{ y: 30, opacity: 0 }}
@@ -746,9 +715,9 @@ const PhoneHomeScreen = () => {
             className="dock-icon ios-dock-icon"
           >
             <ProgressiveImage
-              src={iconUrl}
-              placeholder="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 60'%3E%3Crect fill='%23666' width='60' height='60' rx='13'/%3E%3C/svg%3E"
-              alt={key}
+              src={iconData.url}
+              placeholder={iconData.thumb}
+              alt={iconData.name}
               className="w-full h-full object-cover"
             />
           </motion.div>
@@ -845,11 +814,10 @@ const ConfirmationModal = ({ isOpen, onClose, onConfirm, type = 'buy' }) => {
               }
             }}
             disabled={!isChecked}
-            className={`flex-1 px-4 py-3 rounded-lg font-medium transition-all flex items-center justify-center gap-2 ${
-              isChecked
-                ? 'bg-green-600 text-white hover:bg-green-700 hover:scale-105'
-                : 'bg-gray-800 text-gray-500 cursor-not-allowed opacity-50'
-            }`}
+            className={`flex-1 px-4 py-3 rounded-lg font-medium transition-all flex items-center justify-center gap-2 ${isChecked
+              ? 'bg-green-600 text-white hover:bg-green-700 hover:scale-105'
+              : 'bg-gray-800 text-gray-500 cursor-not-allowed opacity-50'
+              }`}
           >
             <CheckCircle className="w-5 h-5" />
             Подтвердить
@@ -876,7 +844,7 @@ const QuantityInputModal = ({ isOpen, onClose, currentAmount, onConfirm, minAmou
 
   const handleConfirm = () => {
     const numValue = parseFloat(inputValue);
-    
+
     if (isNaN(numValue) || numValue <= 0) {
       setError('Введите корректное число');
       return;
@@ -1123,7 +1091,7 @@ const BuyVirtyFlow = () => {
       }
 
       // Send notification to admin (non-blocking, ignore errors)
-      notifyNewBuyOrder(result.data, server.name).catch(() => {});
+      notifyNewBuyOrder(result.data, server.name).catch(() => { });
 
       toast.success('Заявка на покупку создана!');
       setShowSuccess(true);
@@ -1281,7 +1249,7 @@ const BuyVirtyFlow = () => {
             </label>
 
             <div className="slider-container">
-              <div 
+              <div
                 className="slider-value-display cursor-pointer hover:bg-gray-800/50 transition-colors rounded-lg p-2"
                 onClick={() => setShowQuantityModal(true)}
                 title="Нажмите для ввода точного значения"
@@ -1564,7 +1532,7 @@ const SellVirtyFlow = () => {
       }
 
       // Send notification to admin for approval (non-blocking)
-      notifyNewSellOrder(result.data, server.name).catch(() => {});
+      notifyNewSellOrder(result.data, server.name).catch(() => { });
 
       toast.success('Заявка на продажу отправлена на модерацию!');
       setShowSuccess(true);
@@ -1680,7 +1648,7 @@ const SellVirtyFlow = () => {
             </label>
 
             <div className="slider-container">
-              <div 
+              <div
                 className="slider-value-display cursor-pointer hover:bg-gray-800/50 transition-colors rounded-lg p-2"
                 onClick={() => setShowQuantityModal(true)}
                 title="Нажмите для ввода точного значения"
@@ -2456,7 +2424,7 @@ function AppRoutes() {
 // Main App Component
 function App() {
   const { isBanned, isChecking } = useBanCheck();
-  
+
   useEffect(() => {
     const tg = window.Telegram?.WebApp;
     if (tg) {
