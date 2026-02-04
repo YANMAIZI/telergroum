@@ -595,6 +595,40 @@ const getCurrentUser = () => {
 };
 
 // Status Bar Component - Now Fixed
+// Progressive Image Component for optimized loading
+const ProgressiveImage = ({ src, placeholder, alt = '', className = '', style = {} }) => {
+  const [imgSrc, setImgSrc] = useState(placeholder || src);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const img = new Image();
+    img.src = src;
+    img.onload = () => {
+      setImgSrc(src);
+      setIsLoading(false);
+    };
+  }, [src]);
+
+  return (
+    <img
+      src={imgSrc}
+      alt={alt}
+      className={`${className} ${isLoading ? 'loading' : 'loaded'}`}
+      style={style}
+      loading="lazy"
+      decoding="async"
+    />
+  );
+};
+
+// iOS Icons - Optimized URLs with smaller sizes for faster loading
+const IOS_ICONS = {
+  phone: 'https://cdn.jim-nielsen.com/ios/512/phone-2023-06-05.png?rf=256',
+  messages: 'https://cdn.jim-nielsen.com/ios/512/messages-2023-06-05.png?rf=256',
+  camera: 'https://cdn.jim-nielsen.com/ios/512/camera-2023-06-05.png?rf=256',
+  safari: 'https://cdn.jim-nielsen.com/ios/512/safari-2023-06-05.png?rf=256'
+};
+
 const StatusBar = () => {
   const [currentTime, setCurrentTime] = useState('');
 
@@ -640,6 +674,14 @@ const StatusBar = () => {
 // Phone Home Screen
 const PhoneHomeScreen = () => {
   const navigate = useNavigate();
+  const [wallpaperLoaded, setWallpaperLoaded] = useState(false);
+
+  // Preload wallpaper in background
+  useEffect(() => {
+    const img = new Image();
+    img.src = '/phone_wallpaper.jpg';
+    img.onload = () => setWallpaperLoaded(true);
+  }, []);
 
   return (
     <motion.div
@@ -647,7 +689,7 @@ const PhoneHomeScreen = () => {
       animate={{ opacity: 1 }}
       className="phone-home-screen"
       style={{
-        backgroundImage: 'url(/phone_wallpaper.jpg)',
+        backgroundImage: wallpaperLoaded ? 'url(/phone_wallpaper.jpg)' : 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
         backgroundSize: 'cover',
         backgroundPosition: 'center'
       }}
@@ -670,12 +712,11 @@ const PhoneHomeScreen = () => {
           }}
         >
           <div className="app-icon-bg bg-transparent shadow-none relative overflow-hidden">
-            <motion.img
+            <ProgressiveImage
               src="/gta_logo_new.jpg"
+              placeholder="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect fill='%23333' width='100' height='100'/%3E%3C/svg%3E"
               alt="GTA 5 RP Exchange"
               className="app-icon-image"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
             />
             {/* Shimmer effect */}
             <motion.div
@@ -694,379 +735,24 @@ const PhoneHomeScreen = () => {
         </motion.div>
       </div>
 
-      {/* Enhanced Dock */}
-      <div className="phone-dock">
-        {['📞', '💬', '📷', '🌐'].map((emoji, index) => (
+      {/* Enhanced Dock with Real iOS Icons and Frosted Glass */}
+      <div className="phone-dock frosted-glass">
+        {Object.entries(IOS_ICONS).map(([key, iconUrl], index) => (
           <motion.div
-            key={index}
+            key={key}
             initial={{ y: 30, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.05 * index, duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
-            className={`dock-icon ${index === 0 ? 'bg-gradient-to-br from-green-500 to-green-600' :
-              index === 1 ? 'bg-gradient-to-br from-green-400 to-green-500' :
-                index === 2 ? 'bg-gradient-to-br from-gray-600 to-gray-700' :
-                  'bg-gradient-to-br from-blue-500 to-blue-600'
-              }`}
+            className="dock-icon ios-dock-icon"
           >
-            <span className="text-2xl">{emoji}</span>
+            <ProgressiveImage
+              src={iconUrl}
+              placeholder="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 60'%3E%3Crect fill='%23666' width='60' height='60' rx='13'/%3E%3C/svg%3E"
+              alt={key}
+              className="w-full h-full object-cover"
+            />
           </motion.div>
         ))}
-      </div>
-    </motion.div>
-  );
-};
-
-// Refund Info Tooltip Component
-const RefundInfoTooltip = ({ onClose }) => {
-  return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="refund-tooltip-overlay"
-      onClick={onClose}
-    >
-      <motion.div
-        initial={{ scale: 0.9, opacity: 0, y: 20 }}
-        animate={{ scale: 1, opacity: 1, y: 0 }}
-        exit={{ scale: 0.9, opacity: 0, y: 20 }}
-        className="refund-tooltip-content"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="refund-tooltip-header">
-          <Info className="w-6 h-6 text-blue-400" />
-          <h3 className="refund-tooltip-title">Возврат до 45% при блокировке</h3>
-        </div>
-
-        <div className="refund-tooltip-body">
-          <p className="refund-tooltip-text">
-            <strong>Тебя забанили? Не беда, вернем до 45% от суммы покупки!</strong>
-          </p>
-
-          <p className="refund-tooltip-text">
-            Скорее всего, покупая валюту у нас, вы никогда не получите бан, ведь мы делаем все возможное для того, чтобы сократить все риски к нулю.
-          </p>
-
-          <p className="refund-tooltip-text">
-            К сожалению, никто не застрахован от банов за покупку/продажу виртуальной валюты, ведь это запрещено практически на всех проектах.
-          </p>
-
-          <p className="refund-tooltip-text">
-            <strong>Как получить деньги обратно при бане:</strong>
-          </p>
-
-          <ol className="refund-tooltip-list">
-            <li>Пришли нам в личные сообщения скриншот о блокировке аккаунта (фейковые скрины не принимаем!)</li>
-            <li>Напиши на форум своего проекта запрос с просьбой доказательств блокировки, нам понадобится скриншот ответа поддержки</li>
-            <li>Приложи чек об оплате виртуальной валюты в нашем магазине (скриншот должен быть разборчив, без коррекций, актуально двое суток с момента покупки)</li>
-          </ol>
-        </div>
-
-        <button className="refund-tooltip-close" onClick={onClose}>
-          Понятно
-        </button>
-      </motion.div>
-    </motion.div>
-  );
-};
-
-// Main Exchange App Screen
-const VirtyExchangeApp = () => {
-  const navigate = useNavigate();
-  const { isAdmin } = getCurrentUser();
-  const [stats, setStats] = useState({
-    activeDeals: 156,
-    totalServers: 23,
-    satisfiedUsers: 1240
-  });
-
-  // Show refund tooltip only on first launch
-  const [showRefundTooltip, setShowRefundTooltip] = useState(() => {
-    const hasSeenTooltip = localStorage.getItem('hasSeenRefundTooltip');
-    return !hasSeenTooltip;
-  });
-
-  const handleCloseTooltip = () => {
-    setShowRefundTooltip(false);
-    localStorage.setItem('hasSeenRefundTooltip', 'true');
-  };
-
-  return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
-      className="virty-app-container"
-    >
-      <StatusBar />
-
-      {/* Header with centered title */}
-      <div className="virty-app-header-enhanced">
-        <motion.button
-          onClick={() => navigate('/')}
-          className="virty-back-btn"
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-        >
-          <ArrowLeft className="w-6 h-6" />
-        </motion.button>
-        <h1 className="virty-app-title">GTA5RP</h1>
-      </div>
-
-      <div className="virty-app-content">
-        {/* Hero Section */}
-        <motion.div
-          initial={{ scale: 0.9, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ delay: 0.1 }}
-          className="virty-hero-section"
-        >
-          <h2 className="virty-welcome-modern">Магазин виртов Патрика</h2>
-        </motion.div>
-
-        {/* Action Cards – две главные кнопки подряд, на всю ширину */}
-        <div className="action-cards-grid">
-          <Link to="/buy-virty" className="action-card-link action-card-link-full">
-            <motion.div
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1, duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
-              className="action-card action-card-buy"
-              whileTap={{ scale: 0.98 }}
-            >
-              <div className="action-card-icon">
-                <TrendingUp size={32} strokeWidth={2} />
-              </div>
-              <div className="action-card-content">
-                <h3 className="action-card-title">Купить Вирты</h3>
-              </div>
-              <ChevronRight size={22} strokeWidth={2} className="action-card-arrow" />
-            </motion.div>
-          </Link>
-
-          <Link to="/sell-virty" className="action-card-link action-card-link-full">
-            <motion.div
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.15, duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
-              className="action-card action-card-sell"
-              whileTap={{ scale: 0.98 }}
-            >
-              <div className="action-card-icon">
-                <TrendingDown size={32} strokeWidth={2} />
-              </div>
-              <div className="action-card-content">
-                <h3 className="action-card-title">Продать Вирты</h3>
-              </div>
-              <ChevronRight size={22} strokeWidth={2} className="action-card-arrow" />
-            </motion.div>
-          </Link>
-
-          <Link to="/my-orders" className="action-card-link action-card-link-full">
-            <motion.div
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2, duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
-              className="action-card action-card-neutral"
-              whileTap={{ scale: 0.98 }}
-            >
-              <div className="action-card-icon">
-                <ShoppingBag size={32} strokeWidth={2} />
-              </div>
-              <div className="action-card-content">
-                <h3 className="action-card-title">Мои заявки</h3>
-              </div>
-              <ChevronRight size={22} strokeWidth={2} className="action-card-arrow" />
-            </motion.div>
-          </Link>
-
-          {isAdmin && (
-            <Link to="/admin" className="action-card-link action-card-link-full">
-              <motion.div
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.25, duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
-                className="action-card"
-                whileTap={{ scale: 0.98 }}
-              >
-                <div className="action-card-icon">
-                  <Settings size={32} strokeWidth={2} />
-                </div>
-                <div className="action-card-content">
-                  <h3 className="action-card-title">Админ-панель</h3>
-                </div>
-                <ChevronRight size={22} strokeWidth={2} className="action-card-arrow" />
-              </motion.div>
-            </Link>
-          )}
-        </div>
-
-        {/* Stats Grid - Removed */}
-
-        {/* Features - Moved to bottom */}
-
-      </div>
-
-      {/* Refund Info Tooltip */}
-      <AnimatePresence>
-        {showRefundTooltip && (
-          <RefundInfoTooltip onClose={handleCloseTooltip} />
-        )}
-      </AnimatePresence>
-    </motion.div>
-  );
-};
-
-// Server Selection with Enhanced UI
-const ServerSelection = ({ type }) => {
-  const navigate = useNavigate();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [serverStats, setServerStats] = useState({});
-  const [statsLoading, setStatsLoading] = useState(true);
-
-  // Load server statistics (sellers for buy, buyers for sell)
-  useEffect(() => {
-    const loadStats = async () => {
-      setStatsLoading(true);
-      if (type === 'buy') {
-        const stats = await getServerStats();
-        setServerStats(stats);
-      } else if (type === 'sell') {
-        const stats = await getBuyerStats();
-        setServerStats(stats);
-      }
-      setStatsLoading(false);
-    };
-    loadStats();
-  }, [type]);
-
-  const filteredServers = SERVERS
-    .filter(server => server.name.toLowerCase().includes(searchTerm.toLowerCase()));
-
-  const formatServerStats = (serverId) => {
-    const stats = serverStats[serverId];
-    if (!stats || stats.count === 0) {
-      return '0 чел, 0кк';
-    }
-    const kk = Math.floor(stats.totalAmount / 1000000);
-    return `${stats.count} чел, ${kk}кк`;
-  };
-
-  return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
-      className="virty-app-container"
-    >
-      <StatusBar />
-
-      <div className="virty-app-header-enhanced">
-        <motion.button
-          onClick={() => navigate('/virty-app')}
-          className="virty-back-btn"
-          whileTap={{ scale: 0.9 }}
-        >
-          <ArrowLeft className="w-6 h-6" />
-        </motion.button>
-        <h1 className="virty-app-title">
-          {type === 'buy' ? 'Купить вирты' : 'Продать вирты'}
-        </h1>
-      </div>
-
-      <div className="virty-app-content">
-        {/* Search only */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
-          className="search-filter-section"
-        >
-          <div className="search-box">
-            <span className="search-icon-wrap" aria-hidden>
-              <Search size={20} strokeWidth={2} className="search-icon" />
-            </span>
-            <input
-              type="text"
-              placeholder="Поиск сервера..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="search-input"
-            />
-            {searchTerm && (
-              <motion.button
-                type="button"
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                onClick={() => setSearchTerm('')}
-                className="search-clear"
-                aria-label="Очистить поиск"
-              >
-                <X size={18} strokeWidth={2} />
-              </motion.button>
-            )}
-          </div>
-        </motion.div>
-
-        {/* Server List */}
-        <div className="server-list-modern">
-          <AnimatePresence>
-            {filteredServers.map((server, index) => {
-              const to = type === 'buy' ? `/buy-virty/server/${server.id}` : `/sell-virty/server/${server.id}`;
-              return (
-                <Link key={server.id} to={to} className="server-card-link">
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ delay: index * 0.03, duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
-                    className="server-card-modern"
-                    whileTap={{ scale: 0.98 }}
-                  >
-                    <div className="server-card-header-modern">
-                      <div className="server-info">
-                        <h3 className="server-name-modern">{server.name}</h3>
-                        {!statsLoading && (type === 'buy' || type === 'sell') && (
-                          <span className="server-stats-static">{formatServerStats(server.id)}</span>
-                        )}
-                        {type === 'buy' && statsLoading && (
-                          <span className="server-stats-static">⏳...</span>
-                        )}
-                        <span className={`server-badge-modern ${type === 'buy' ? 'badge-buy' : 'badge-sell'}`}>
-                          {type === 'buy' ? 'Покупка' : 'Продажа'}
-                        </span>
-                      </div>
-                      <ChevronRight size={20} strokeWidth={2} className="server-arrow" />
-                    </div>
-
-                    <div className="server-pricing-modern">
-                      <div className="price-block">
-                        <span className="price-label-modern">Цена за 1млн</span>
-                        <span className="price-value-modern">
-                          {type === 'buy' ? server.sellPrice : server.buyPrice} ₽
-                        </span>
-                      </div>
-                    </div>
-                  </motion.div>
-                </Link>
-              );
-            })}
-          </AnimatePresence>
-
-          {filteredServers.length === 0 && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="no-results"
-            >
-              <Search size={48} strokeWidth={2} className="w-12 h-12 text-gray-600 mb-3" />
-              <p className="text-gray-400">Серверы не найдены</p>
-              <p className="text-gray-600 text-sm mt-2">Попробуйте изменить запрос</p>
-            </motion.div>
-          )}
-        </div>
       </div>
     </motion.div>
   );

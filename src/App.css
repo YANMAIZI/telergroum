@@ -1436,3 +1436,127 @@ input[type=number] {
 .admin-edit-input:focus {
   border-color: rgba(255, 149, 0, 0.5);
 }
+
+/* ========================================
+   APP LOGO & ANIMATIONS
+   ======================================== */
+.App-logo {
+    height: 40vmin;
+    pointer-events: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .App-logo {
+        animation: App-logo-spin infinite 20s linear;
+    }
+}
+
+.App-header {
+    background-color: #0f0f10;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-size: calc(10px + 2vmin);
+    color: white;
+}
+
+.App-link {
+    color: #61dafb;
+}
+
+@keyframes App-logo-spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* ========================================
+   iOS-STYLE ROUNDED ICONS
+   ======================================== */
+.ios-icon {
+    border-radius: 22.37% !important;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.ios-dock-icon {
+    border-radius: 22.37%;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+    transition: transform 0.2s ease;
+}
+
+.ios-dock-icon:active {
+    transform: scale(0.92);
+}
+
+/* ========================================
+   PROGRESSIVE IMAGE LOADING
+   ======================================== */
+.progressive-image {
+    position: relative;
+    overflow: hidden;
+}
+
+.progressive-image img {
+    transition: opacity 0.3s ease-in-out, filter 0.3s ease-in-out;
+}
+
+.progressive-image img.loading {
+    filter: blur(10px);
+    opacity: 0.6;
+}
+
+.progressive-image img.loaded {
+    filter: blur(0);
+    opacity: 1;
+}
+
+/* ========================================
+   FROSTED GLASS EFFECT FOR HUD
+   ======================================== */
+.frosted-glass {
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* ========================================
+   DYNAMIC ISLAND
+   ======================================== */
+.dynamic-island {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 126px;
+    height: 37px;
+    background: #000;
+    border-radius: 0 0 20px 20px;
+    z-index: 100;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ========================================
+   ENHANCED STATUS BAR WITH FROSTED EFFECT
+   ======================================== */
+.phone-status-bar {
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0.5) 0%, rgba(0, 0, 0, 0.1) 100%);
+}
+
+/* ========================================
+   ENHANCED DOCK WITH FROSTED EFFECT
+   ======================================== */
+.phone-dock {
+    backdrop-filter: blur(30px) saturate(180%);
+    -webkit-backdrop-filter: blur(30px) saturate(180%);
+    background: rgba(255, 255, 255, 0.15) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
