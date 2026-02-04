@@ -584,7 +584,7 @@ const getCurrentUser = () => {
   const tgUser = getTelegramUser();
 
   // Demo mode fallback for development only
-  const isDemoMode = !tgUser.valid && (window.location.hostname === 'localhost' || process.env.NODE_ENV === 'development');
+  const isDemoMode = !tgUser.valid && (window.location.hostname === 'localhost' || import.meta.env?.MODE === 'development');
 
   const user = {
     userId: tgUser.valid ? tgUser.userId : (isDemoMode ? 'demo123' : null),
@@ -745,6 +745,148 @@ const PhoneHomeScreen = () => {
   );
 };
 
+const VirtyExchangeApp = () => {
+  const navigate = useNavigate();
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
+      className="virty-app-container"
+    >
+      <StatusBar />
+
+      <div className="virty-app-header-enhanced">
+        <motion.button
+          onClick={() => navigate('/')}
+          className="virty-back-btn"
+          whileTap={{ scale: 0.9 }}
+        >
+          <ArrowLeft className="w-6 h-6" />
+        </motion.button>
+        <h1 className="virty-app-title">Обмен виртов</h1>
+        <div style={{ width: 40, height: 40 }} />
+      </div>
+
+      <div className="virty-app-content">
+        <div className="virty-hero-section">
+          <h2 className="virty-welcome-modern">GTA5RP</h2>
+        </div>
+
+        <div className="action-cards-grid">
+          <Link to="/buy-virty" className="action-card-link">
+            <motion.div whileTap={{ scale: 0.98 }} className="action-card action-card-buy">
+              <div className="action-card-icon">
+                <TrendingUp className="w-6 h-6" />
+              </div>
+              <div className="action-card-content">
+                <p className="action-card-title">Покупка виртов</p>
+              </div>
+              <ChevronRight className="action-card-arrow" />
+            </motion.div>
+          </Link>
+
+          <Link to="/sell-virty" className="action-card-link">
+            <motion.div whileTap={{ scale: 0.98 }} className="action-card action-card-sell">
+              <div className="action-card-icon">
+                <TrendingDown className="w-6 h-6" />
+              </div>
+              <div className="action-card-content">
+                <p className="action-card-title">Продажа виртов</p>
+              </div>
+              <ChevronRight className="action-card-arrow" />
+            </motion.div>
+          </Link>
+
+          <Link to="/my-orders" className="action-card-link">
+            <motion.div whileTap={{ scale: 0.98 }} className="action-card">
+              <div className="action-card-icon" style={{ background: 'rgba(0, 122, 255, 1)' }}>
+                <ShoppingBag className="w-6 h-6" />
+              </div>
+              <div className="action-card-content">
+                <p className="action-card-title">Мои заявки</p>
+              </div>
+              <ChevronRight className="action-card-arrow" />
+            </motion.div>
+          </Link>
+
+          <Link to="/admin" className="action-card-link">
+            <motion.div whileTap={{ scale: 0.98 }} className="action-card">
+              <div className="action-card-icon" style={{ background: 'rgba(255, 159, 10, 1)' }}>
+                <Settings className="w-6 h-6" />
+              </div>
+              <div className="action-card-content">
+                <p className="action-card-title">Админ-панель</p>
+              </div>
+              <ChevronRight className="action-card-arrow" />
+            </motion.div>
+          </Link>
+        </div>
+      </div>
+    </motion.div>
+  );
+};
+
+const ServerSelection = ({ type = 'buy' }) => {
+  const navigate = useNavigate();
+  const title = type === 'buy' ? 'Покупка виртов' : 'Продажа виртов';
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
+      className="virty-app-container"
+    >
+      <StatusBar />
+
+      <div className="virty-app-header-enhanced">
+        <motion.button
+          onClick={() => navigate('/virty-app')}
+          className="virty-back-btn"
+          whileTap={{ scale: 0.9 }}
+        >
+          <ArrowLeft className="w-6 h-6" />
+        </motion.button>
+        <h1 className="virty-app-title">{title}</h1>
+        <div style={{ width: 40, height: 40 }} />
+      </div>
+
+      <div className="virty-app-content">
+        <div className="server-list-modern">
+          {SERVERS.map((server) => (
+            <Link
+              key={server.id}
+              to={type === 'buy' ? `/buy-virty/server/${server.id}` : `/sell-virty/server/${server.id}`}
+              className="server-card-link"
+            >
+              <motion.div whileTap={{ scale: 0.99 }} className="server-card-modern">
+                <div className="server-card-header-modern">
+                  <div className="server-info">
+                    <h3 className="server-name-modern">{server.name}</h3>
+                  </div>
+                  <span className={`server-badge-modern ${type === 'buy' ? 'badge-buy' : 'badge-sell'}`}>
+                    {type === 'buy' ? 'Покупка' : 'Продажа'}
+                  </span>
+                </div>
+
+                <div className="server-pricing-modern">
+                  <div className="price-block">
+                    <span className="price-label-modern">Цена за 1 млн</span>
+                    <span className="price-value-modern">{type === 'buy' ? server.sellPrice : server.buyPrice} ₽</span>
+                  </div>
+                </div>
+              </motion.div>
+            </Link>
+          ))}
+        </div>
+      </div>
+    </motion.div>
+  );
+};
 
 // Confirmation Modal Component with Warning
 const ConfirmationModal = ({ isOpen, onClose, onConfirm, type = 'buy' }) => {

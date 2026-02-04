@@ -36,9 +36,7 @@ const attachRuntimeErrorOverlay = () => {
 
       el.textContent = `${title}\n\n${text}`;
       document.body.appendChild(el);
-    } catch {
-      /* ignore */
-    }
+    } catch {}
   };
 
   window.addEventListener("error", (e) => {
