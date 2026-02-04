@@ -16,6 +16,7 @@ export default defineConfig(({ mode }) => {
       'process.env.REACT_APP_BACKEND_URL': JSON.stringify(env.REACT_APP_BACKEND_URL || ''),
       'process.env.REACT_APP_BOT_TOKEN': JSON.stringify(env.REACT_APP_BOT_TOKEN || ''),
       'process.env.REACT_APP_ADMIN_CHAT_ID': JSON.stringify(env.REACT_APP_ADMIN_CHAT_ID || ''),
+      'process.env.REACT_APP_ADMIN_USERNAME': JSON.stringify(env.REACT_APP_ADMIN_USERNAME || ''),
     },
     esbuild: {
       loader: 'jsx',
