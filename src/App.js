@@ -272,6 +272,35 @@ const getServerStats = async () => {
   }
 };
 
+// Get buyer stats (how many buying on each server)
+const getBuyerStats = async () => {
+  try {
+    if (!API) return {};
+
+    const response = await axios.get(`${API}/orders/stats/buyers`, {
+      params: { project: 'GTA5RP' },
+      timeout: 10000
+    });
+    const statsList = response.data || [];
+
+    const stats = {};
+    statsList.forEach(stat => {
+      if (stat.server_id) {
+        stats[stat.server_id] = {
+          count: stat.total_buyers,
+          totalAmount: stat.total_amount
+        };
+      }
+    });
+
+    return stats;
+  } catch (error) {
+    console.error('Error getting buyer stats:', error);
+    return {};
+  }
+};
+
+
 // Approve sell order (admin)
 const approveSellOrder = async (orderId) => {
   try {
@@ -768,17 +797,18 @@ const ServerSelection = ({ type }) => {
   const [serverStats, setServerStats] = useState({});
   const [statsLoading, setStatsLoading] = useState(true);
 
-  // Load server statistics for buy type
+  // Load server statistics (sellers for buy, buyers for sell)
   useEffect(() => {
     const loadStats = async () => {
+      setStatsLoading(true);
       if (type === 'buy') {
-        setStatsLoading(true);
         const stats = await getServerStats();
         setServerStats(stats);
-        setStatsLoading(false);
-      } else {
-        setStatsLoading(false);
+      } else if (type === 'sell') {
+        const stats = await getBuyerStats();
+        setServerStats(stats);
       }
+      setStatsLoading(false);
     };
     loadStats();
   }, [type]);
@@ -870,7 +900,7 @@ const ServerSelection = ({ type }) => {
                     <div className="server-card-header-modern">
                       <div className="server-info">
                         <h3 className="server-name-modern">{server.name}</h3>
-                        {type === 'buy' && !statsLoading && (
+                        {!statsLoading && (type === 'buy' || type === 'sell') && (
                           <span className="server-stats-static">{formatServerStats(server.id)}</span>
                         )}
                         {type === 'buy' && statsLoading && (
@@ -914,6 +944,121 @@ const ServerSelection = ({ type }) => {
   );
 };
 
+
+// Quantity Input Modal Component for Keyboard Entry
+const QuantityInputModal = ({ isOpen, onClose, currentAmount, onConfirm, minAmount = 500000, maxAmount = 100000000 }) => {
+  const [inputValue, setInputValue] = useState('');
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (isOpen) {
+      // Convert to millions for easier input
+      const amountInMil = (currentAmount / 1000000).toFixed(1);
+      setInputValue(amountInMil);
+      setError('');
+    }
+  }, [isOpen, currentAmount]);
+
+  const handleConfirm = () => {
+    const numValue = parseFloat(inputValue);
+    
+    if (isNaN(numValue) || numValue <= 0) {
+      setError('Введите корректное число');
+      return;
+    }
+
+    const amountInVirts = Math.round(numValue * 1000000);
+
+    if (amountInVirts < minAmount) {
+      setError(`Минимум ${(minAmount / 1000000).toFixed(1)}кк`);
+      return;
+    }
+
+    if (amountInVirts > maxAmount) {
+      setError(`Максимум ${(maxAmount / 1000000).toFixed(0)}кк`);
+      return;
+    }
+
+    onConfirm(amountInVirts);
+    onClose();
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 bg-black/70 flex items-center justify-center z-50"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.9, opacity: 0 }}
+        onClick={(e) => e.stopPropagation()}
+        className="bg-gray-900 rounded-2xl p-6 w-[90%] max-w-md border border-gray-700"
+      >
+        <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+          <Wallet className="w-6 h-6 text-green-400" />
+          Введите количество
+        </h3>
+
+        <div className="mb-4">
+          <label className="text-sm text-gray-400 mb-2 block">
+            Количество виртов (в миллионах)
+          </label>
+          <input
+            type="number"
+            step="0.5"
+            min={minAmount / 1000000}
+            max={maxAmount / 1000000}
+            value={inputValue}
+            onChange={(e) => {
+              setInputValue(e.target.value);
+              setError('');
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                handleConfirm();
+              }
+            }}
+            className="w-full px-4 py-3 bg-gray-800 text-white text-2xl font-bold rounded-lg border border-gray-700 focus:border-green-500 focus:outline-none transition-colors text-center"
+            placeholder="1.5"
+            autoFocus
+          />
+          <p className="text-xs text-gray-500 mt-2">
+            {(minAmount / 1000000).toFixed(1)}кк - {(maxAmount / 1000000).toFixed(0)}кк
+          </p>
+        </div>
+
+        {error && (
+          <div className="mb-4 p-3 bg-red-900/30 border border-red-700 rounded-lg">
+            <p className="text-red-400 text-sm">{error}</p>
+          </div>
+        )}
+
+        <div className="flex gap-3">
+          <button
+            onClick={onClose}
+            className="flex-1 px-4 py-3 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium"
+          >
+            Отмена
+          </button>
+          <button
+            onClick={handleConfirm}
+            className="flex-1 px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium flex items-center justify-center gap-2"
+          >
+            <Check className="w-5 h-5" />
+            Применить
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+};
+
 // Buy Flow with Refund Toggle - IMPROVED STABILITY
 const BuyVirtyFlow = () => {
   const navigate = useNavigate();
@@ -947,6 +1092,7 @@ const BuyVirtyFlow = () => {
   const [refundEnabled, setRefundEnabled] = useState(true);
   const [availableVirty, setAvailableVirty] = useState(null);
   const [isReservationOnly, setIsReservationOnly] = useState(false);
+  const [showQuantityModal, setShowQuantityModal] = useState(false);
 
   useEffect(() => {
     if (!API) return;
@@ -1205,7 +1351,11 @@ const BuyVirtyFlow = () => {
             </label>
 
             <div className="slider-container">
-              <div className="slider-value-display">
+              <div 
+                className="slider-value-display cursor-pointer hover:bg-gray-800/50 transition-colors rounded-lg p-2"
+                onClick={() => setShowQuantityModal(true)}
+                title="Нажмите для ввода точного значения"
+              >
                 <span className="text-3xl font-bold text-white">{formatAmount(amount)}</span>
                 <span className="text-sm text-gray-400">{amount.toLocaleString('ru-RU')} виртов</span>
               </div>
@@ -1214,7 +1364,7 @@ const BuyVirtyFlow = () => {
                 type="range"
                 min="500000"
                 max="100000000"
-                step="100000"
+                step="500000"
                 value={amount}
                 onChange={(e) => setAmount(parseInt(e.target.value))}
                 className="modern-slider"
@@ -1329,6 +1479,16 @@ const BuyVirtyFlow = () => {
           </motion.div>
         </form>
       </div>
+
+      {/* Quantity Input Modal */}
+      <QuantityInputModal
+        isOpen={showQuantityModal}
+        onClose={() => setShowQuantityModal(false)}
+        currentAmount={amount}
+        onConfirm={(newAmount) => setAmount(newAmount)}
+        minAmount={500000}
+        maxAmount={100000000}
+      />
     </motion.div>
   );
 };
@@ -1358,11 +1518,12 @@ const SellVirtyFlow = () => {
   }
 
   const server = SERVERS.find(s => s.id === parseInt(serverId));
-  const [amount, setAmount] = useState(1000000);
+  const [amount, setAmount] = useState(500000);
   const [contact, setContact] = useState('');
   const [loading, setLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [existingContribution, setExistingContribution] = useState(null);
+  const [showQuantityModal, setShowQuantityModal] = useState(false);
 
   useEffect(() => {
     if (!API) return;
@@ -1567,16 +1728,20 @@ const SellVirtyFlow = () => {
             </label>
 
             <div className="slider-container">
-              <div className="slider-value-display">
+              <div 
+                className="slider-value-display cursor-pointer hover:bg-gray-800/50 transition-colors rounded-lg p-2"
+                onClick={() => setShowQuantityModal(true)}
+                title="Нажмите для ввода точного значения"
+              >
                 <span className="text-3xl font-bold text-white">{formatAmount(amount)}</span>
                 <span className="text-sm text-gray-400">{amount.toLocaleString('ru-RU')} виртов</span>
               </div>
 
               <input
                 type="range"
-                min="1000000"
+                min="500000"
                 max="100000000"
-                step="100000"
+                step="500000"
                 value={amount}
                 onChange={(e) => setAmount(parseInt(e.target.value))}
                 className="modern-slider modern-slider-sell"
@@ -1681,6 +1846,16 @@ const SellVirtyFlow = () => {
           </motion.div>
         </form>
       </div>
+
+      {/* Quantity Input Modal */}
+      <QuantityInputModal
+        isOpen={showQuantityModal}
+        onClose={() => setShowQuantityModal(false)}
+        currentAmount={amount}
+        onConfirm={(newAmount) => setAmount(newAmount)}
+        minAmount={500000}
+        maxAmount={100000000}
+      />
     </motion.div>
   );
 };
