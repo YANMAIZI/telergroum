@@ -51,6 +51,75 @@ class ErrorBoundary extends React.Component {
   }
 }
 
+const BannedScreen = () => {
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="virty-app-container flex items-center justify-center"
+      style={{
+        background: 'linear-gradient(135deg, #1a1a1a 0%, #2d1a1a 100%)',
+        minHeight: '100vh'
+      }}
+    >
+      <div className="text-center p-8 max-w-md">
+        <motion.div
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          transition={{ type: "spring", duration: 0.5 }}
+          className="mb-6"
+        >
+          <XCircle className="w-32 h-32 text-red-500 mx-auto drop-shadow-2xl" />
+        </motion.div>
+        
+        <motion.h1
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="text-4xl font-bold text-white mb-4"
+        >
+          🚫 Доступ заблокирован
+        </motion.h1>
+        
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.3 }}
+          className="text-gray-300 mb-6 leading-relaxed text-lg"
+        >
+          Ваш аккаунт был заблокирован администрацией.
+        </motion.p>
+        
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+          className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-6 mb-8 border border-red-500/20"
+        >
+          <Shield className="w-12 h-12 text-red-400 mx-auto mb-3" />
+          <p className="text-gray-400 text-sm leading-relaxed">
+            Для разблокировки обратитесь к администратору.<br />
+            Мы рассмотрим вашу ситуацию в течение 24 часов.
+          </p>
+        </motion.div>
+        
+        <motion.a
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+          href={`https://t.me/${ADMIN_USERNAME}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-3 px-8 py-4 bg-blue-600 text-white rounded-2xl hover:bg-blue-700 transition-all transform hover:scale-105 font-semibold shadow-lg"
+        >
+          <Users className="w-6 h-6" />
+          Написать администратору
+        </motion.a>
+      </div>
+    </motion.div>
+  );
+};
+
 // Security: Use environment variables instead of hardcoded values
 const ADMIN_USERNAME = process.env.REACT_APP_ADMIN_USERNAME || 'patrickprodast';
 const BOT_TOKEN = process.env.REACT_APP_BOT_TOKEN || '';
@@ -146,6 +215,41 @@ const isInTelegram = () => {
   return Boolean(window.Telegram?.WebApp?.initDataUnsafe?.user?.id);
 };
 
+const useBanCheck = () => {
+  const [isBanned, setIsBanned] = useState(false);
+  const [isChecking, setIsChecking] = useState(true);
+
+  useEffect(() => {
+    const checkBanStatus = async () => {
+      const telegramUser = getTelegramUser();
+      
+      if (!telegramUser.valid) {
+        setIsChecking(false);
+        return;
+      }
+
+      try {
+        const response = await axios.get(`${API}/banned/${telegramUser.userId}`, {
+          timeout: 5000
+        });
+        
+        if (response.data && response.data.banned) {
+          setIsBanned(true);
+          console.log('User is banned:', response.data);
+        }
+      } catch (error) {
+        console.error('Error checking ban status:', error);
+      } finally {
+        setIsChecking(false);
+      }
+    };
+
+    checkBanStatus();
+  }, []);
+
+  return { isBanned, isChecking };
+};
+
 // ==========================================
 // API ORDER MANAGEMENT (SQLite through Backend)
 // ==========================================
@@ -156,6 +260,23 @@ const createOrder = async (orderData) => {
     if (!API) {
       console.error('Backend API URL not configured');
       return { success: false, error: 'INTERNAL_ERROR' };
+    }
+
+    // ✅ ПРОВЕРКА БЛОКИРОВКИ
+    try {
+      const banCheck = await axios.get(`${API}/banned/${orderData.userId}`, {
+        timeout: 5000
+      });
+      
+      if (banCheck.data && banCheck.data.banned) {
+        return { 
+          success: false, 
+          error: 'USER_BANNED',
+          message: 'Вы заблокированы. Обратитесь к администратору.'
+        };
+      }
+    } catch (banCheckError) {
+      console.log('Ban check failed, continuing...', banCheckError);
     }
 
     const server = SERVERS.find(s => s.id === orderData.serverId);
@@ -188,7 +309,14 @@ const createOrder = async (orderData) => {
   } catch (error) {
     console.error('Error creating order:', error);
     
-    // Extract error code from backend response if available
+    if (error.response?.data?.error === 'USER_BANNED') {
+      return { 
+        success: false, 
+        error: 'USER_BANNED',
+        message: 'Вы заблокированы. Обратитесь к администратору.'
+      };
+    }
+    
     const errorCode = error.response?.data?.error || 'NETWORK_ERROR';
     return { success: false, error: errorCode };
   }
@@ -1297,7 +1425,14 @@ const BuyVirtyFlow = () => {
       });
 
       if (!result.success) {
-        toast.error(getErrorMessage(result.error));
+        if (result.error === 'USER_BANNED') {
+          toast.error('Вы заблокированы. Обратитесь к администратору.', {
+            duration: 5000
+          });
+          setTimeout(() => window.location.reload(), 2000);
+        } else {
+          toast.error(getErrorMessage(result.error));
+        }
         return;
       }
 
@@ -1731,7 +1866,14 @@ const SellVirtyFlow = () => {
       });
 
       if (!result.success) {
-        toast.error(getErrorMessage(result.error));
+        if (result.error === 'USER_BANNED') {
+          toast.error('Вы заблокированы. Обратитесь к администратору.', {
+            duration: 5000
+          });
+          setTimeout(() => window.location.reload(), 2000);
+        } else {
+          toast.error(getErrorMessage(result.error));
+        }
         return;
       }
 
@@ -2627,6 +2769,8 @@ function AppRoutes() {
 
 // Main App Component
 function App() {
+  const { isBanned, isChecking } = useBanCheck();
+  
   useEffect(() => {
     const tg = window.Telegram?.WebApp;
     if (tg) {
@@ -2639,11 +2783,50 @@ function App() {
     const gtaLogo = new Image();
     gtaLogo.src = '/gta_logo_new.jpg';
 
-    // Redirect to home screen if not already there
     if (window.location.pathname !== '/' && !sessionStorage.getItem('virty-entry-allowed')) {
       window.location.href = '/';
     }
   }, []);
+
+  if (isChecking) {
+    return (
+      <div className="phone-frame">
+        <div className="phone-screen">
+          <div className="virty-app-container flex items-center justify-center" style={{ background: '#000' }}>
+            <div className="text-center">
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                className="w-16 h-16 border-4 border-green-500 border-t-transparent rounded-full mx-auto mb-4"
+              />
+              <p className="text-gray-400">Проверка доступа...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (isBanned) {
+    return (
+      <div className="phone-frame">
+        <div className="phone-screen">
+          <BannedScreen />
+        </div>
+        <Toaster
+          position="top-center"
+          richColors
+          toastOptions={{
+            style: {
+              background: 'rgba(0, 0, 0, 0.9)',
+              border: '1px solid rgba(255, 215, 0, 0.3)',
+              color: '#ffffff',
+            },
+          }}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="phone-frame">

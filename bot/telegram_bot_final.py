@@ -278,6 +278,61 @@ class APIClient:
         except Exception as e:
             logger.error(f"Error getting buyer stats: {e}")
             return []
+    # ==========================================
+    # BAN/UNBAN API METHODS
+    # ==========================================
+    
+    async def check_user_banned(self, user_id: int) -> dict:
+        """Проверить заблокирован ли пользователь"""
+        try:
+            async with aiohttp.ClientSession(timeout=REQUEST_TIMEOUT) as session:
+                async with session.get(f"{self.base_url}/banned/{user_id}") as response:
+                    if response.status == 200:
+                        return await response.json()
+                    else:
+                        return {"banned": False}
+        except Exception as e:
+            logger.error(f"Error checking ban status: {e}")
+            return {"banned": False}
+    
+    async def ban_user(self, user_id: int, username: str = None, days: int = None, banned_by: str = "admin") -> bool:
+        """Заблокировать пользователя"""
+        try:
+            data = {
+                "user_id": str(user_id),
+                "username": username,
+                "days": days,
+                "banned_by": banned_by
+            }
+            async with aiohttp.ClientSession(timeout=REQUEST_TIMEOUT) as session:
+                async with session.post(f"{self.base_url}/banned", json=data) as response:
+                    return response.status == 200
+        except Exception as e:
+            logger.error(f"Error banning user: {e}")
+            return False
+    
+    async def unban_user(self, user_id: int) -> bool:
+        """Разблокировать пользователя"""
+        try:
+            async with aiohttp.ClientSession(timeout=REQUEST_TIMEOUT) as session:
+                async with session.delete(f"{self.base_url}/banned/{user_id}") as response:
+                    return response.status == 200
+        except Exception as e:
+            logger.error(f"Error unbanning user: {e}")
+            return False
+    
+    async def get_banned_users(self) -> List[dict]:
+        """Получить список заблокированных пользователей"""
+        try:
+            async with aiohttp.ClientSession(timeout=REQUEST_TIMEOUT) as session:
+                async with session.get(f"{self.base_url}/banned") as response:
+                    if response.status == 200:
+                        return await response.json()
+                    else:
+                        return []
+        except Exception as e:
+            logger.error(f"Error getting banned users: {e}")
+            return []
 
 # Инициализация
 bot = Bot(token=BOT_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
@@ -296,6 +351,50 @@ async def notify_admin(text: str):
         logger.info(f"[ADMIN NOTIFY] Уведомление отправлено admin {ADMIN_USER_ID}")
     except Exception as e:
         logger.error(f"[ADMIN NOTIFY] Ошибка: {e}")
+
+# ==========================================
+# BAN CHECK MIDDLEWARE
+# ==========================================
+async def check_ban_middleware(handler, event, data):
+    """Middleware для проверки блокировки пользователя"""
+    # Пропускаем события от каналов
+    if not hasattr(event, 'from_user') or not event.from_user:
+        return await handler(event, data)
+    
+    user_id = event.from_user.id
+    
+    # Админ не может быть заблокирован
+    if user_id == ADMIN_USER_ID:
+        return await handler(event, data)
+    
+    # Проверяем блокировку
+    ban_status = await api_client.check_user_banned(user_id)
+    
+    if ban_status.get('banned'):
+        # Пользователь заблокирован
+        banned_until = ban_status.get('banned_until')
+        if banned_until:
+            ban_text = f"<b>⛔️ Вы заблокированы до {banned_until}</b>"
+        else:
+            ban_text = "<b>⛔️ Вы заблокированы</b>"
+        
+        ban_text += f"\n\n<b>Для разблокировки обратитесь к @{SUPPORT_USERNAME}</b>"
+        
+        # Отправляем сообщение о блокировке
+        if isinstance(event, Message):
+            await event.answer(ban_text)
+        elif isinstance(event, CallbackQuery):
+            await event.answer("Вы заблокированы", show_alert=True)
+            await event.message.answer(ban_text)
+        
+        return  # Прерываем обработку
+    
+    # Пользователь не заблокирован, продолжаем
+    return await handler(event, data)
+
+# Применяем middleware
+router.message.middleware(check_ban_middleware)
+router.callback_query.middleware(check_ban_middleware)
 
 # ==========================================
 # Меню
@@ -552,6 +651,11 @@ async def cmd_admin(message: Message):
 /reject [id] - Отклонить заявку
 /delete [id] - Удалить заявку
 /edit [id] [новое_кол-во] - Изменить количество виртов
+
+⛔️ Блокировка пользователей:
+/ban &lt;user_id или @username&gt; [дни] - Заблокировать
+/unban &lt;user_id или @username&gt; - Разблокировать
+/banned - Список заблокированных
 
 📊 Статистика:
 /stats_all - Общая статистика
@@ -878,6 +982,210 @@ async def cmd_edit_order(message: Message):
     except Exception as e:
         logger.error(f"Error editing order: {e}")
         await message.answer("<b>❌ Неверный формат. Используйте: /edit_[id]_[новое_кол-во_в_кк]</b>")
+
+# ========================================
+# BAN/UNBAN COMMANDS
+# ========================================
+
+@router.message(Command("ban"))
+async def cmd_ban(message: Message):
+    """Заблокировать пользователя: /ban <user_id или @username> [дни]"""
+    if not is_admin(message.from_user.id):
+        await message.answer("<b>❌ Доступ запрещен</b>")
+        return
+    
+    try:
+        parts = message.text.split()
+        if len(parts) < 2:
+            await message.answer("<b>❌ Использование: /ban &lt;user_id или @username&gt; [дни]</b>\n\nПример:\n/ban 123456789 7 - блокировка на 7 дней\n/ban @username - блокировка навсегда")
+            return
+        
+        target = parts[1]
+        days = int(parts[2]) if len(parts) > 2 else None
+        
+        # Определяем user_id и username
+        if target.startswith('@'):
+            # Поиск по username (нужно найти в заявках)
+            username = target[1:]  # Убираем @
+            orders = await api_client.get_orders()
+            user_order = next((o for o in orders if o.get('username') == username), None)
+            
+            if not user_order:
+                await message.answer(f"<b>❌ Пользователь {target} не найден в системе</b>")
+                return
+            
+            user_id = user_order.get('user_id')
+        else:
+            # Прямой user_id
+            try:
+                user_id = int(target)
+                username = None
+                
+                # Попытаемся найти username
+                orders = await api_client.get_orders()
+                user_order = next((o for o in orders if o.get('user_id') == user_id), None)
+                if user_order:
+                    username = user_order.get('username')
+            except ValueError:
+                await message.answer("<b>❌ Неверный формат user_id</b>")
+                return
+        
+        # Блокируем пользователя
+        success = await api_client.ban_user(
+            user_id=user_id,
+            username=username,
+            days=days,
+            banned_by=message.from_user.username or "admin"
+        )
+        
+        if success:
+            ban_text = f"<b>✅ Пользователь заблокирован</b>\n\n"
+            ban_text += f"👤 User ID: <code>{user_id}</code>\n"
+            if username:
+                ban_text += f"📝 Username: @{username}\n"
+            
+            if days:
+                ban_text += f"⏰ Срок: {days} дней"
+            else:
+                ban_text += f"⏰ Срок: навсегда"
+            
+            await message.answer(ban_text)
+            
+            # Попытаемся уведомить пользователя
+            try:
+                await bot.send_message(
+                    chat_id=user_id,
+                    text=f"<b>⛔️ Вы были заблокированы {'на ' + str(days) + ' дней' if days else 'навсегда'}</b>\n\nДля разблокировки обратитесь к @{SUPPORT_USERNAME}"
+                )
+            except:
+                pass  # Если не удалось отправить, игнорируем
+        else:
+            await message.answer("<b>❌ Ошибка блокировки пользователя</b>")
+    
+    except Exception as e:
+        logger.error(f"Error in ban command: {e}")
+        await message.answer("<b>❌ Ошибка выполнения команды</b>")
+
+@router.message(Command("unban"))
+async def cmd_unban(message: Message):
+    """Разблокировать пользователя: /unban <user_id или @username>"""
+    if not is_admin(message.from_user.id):
+        await message.answer("<b>❌ Доступ запрещен</b>")
+        return
+    
+    try:
+        parts = message.text.split()
+        if len(parts) < 2:
+            await message.answer("<b>❌ Использование: /unban &lt;user_id или @username&gt;</b>\n\nПример:\n/unban 123456789\n/unban @username")
+            return
+        
+        target = parts[1]
+        
+        # Определяем user_id
+        if target.startswith('@'):
+            # Поиск по username
+            username = target[1:]
+            orders = await api_client.get_orders()
+            user_order = next((o for o in orders if o.get('username') == username), None)
+            
+            if not user_order:
+                await message.answer(f"<b>❌ Пользователь {target} не найден в системе</b>")
+                return
+            
+            user_id = user_order.get('user_id')
+        else:
+            # Прямой user_id
+            try:
+                user_id = int(target)
+            except ValueError:
+                await message.answer("<b>❌ Неверный формат user_id</b>")
+                return
+        
+        # Разблокируем пользователя
+        success = await api_client.unban_user(user_id)
+        
+        if success:
+            await message.answer(f"<b>✅ Пользователь {target} разблокирован</b>")
+            
+            # Попытаемся уведомить пользователя
+            try:
+                await bot.send_message(
+                    chat_id=user_id,
+                    text=f"<b>✅ Вы были разблокированы</b>\n\nТеперь вы можете пользоваться ботом и мини-приложением."
+                )
+            except:
+                pass
+        else:
+            await message.answer(f"<b>ℹ️ Пользователь {target} не был заблокирован</b>")
+    
+    except Exception as e:
+        logger.error(f"Error in unban command: {e}")
+        await message.answer("<b>❌ Ошибка выполнения команды</b>")
+
+@router.message(Command("banned"))
+async def cmd_banned_list(message: Message):
+    """Список заблокированных пользователей"""
+    if not is_admin(message.from_user.id):
+        await message.answer("<b>❌ Доступ запрещен</b>")
+        return
+    
+    try:
+        banned_users = await api_client.get_banned_users()
+        
+        if not banned_users:
+            await message.answer("<b>📋 Заблокированных пользователей нет</b>")
+            return
+        
+        text = "<b>📋 Заблокированные пользователи:</b>\n\n"
+        
+        for ban in banned_users:
+            user_id = ban.get('user_id')
+            username = ban.get('username')
+            banned_until = ban.get('banned_until')
+            
+            text += f"👤 ID: <code>{user_id}</code>\n"
+            if username:
+                text += f"📝 @{username}\n"
+            
+            if banned_until:
+                text += f"⏰ До: {banned_until}\n"
+            else:
+                text += f"⏰ Навсегда\n"
+            
+            text += f"/unban_{user_id}\n\n"
+        
+        await message.answer(text)
+    
+    except Exception as e:
+        logger.error(f"Error in banned list: {e}")
+        await message.answer("<b>❌ Ошибка получения списка</b>")
+
+@router.message(F.text.regexp(r"^/unban_(\d+)$"))
+async def cmd_unban_short(message: Message):
+    """Быстрая разблокировка через /unban_<user_id>"""
+    if not is_admin(message.from_user.id):
+        await message.answer("<b>❌ Доступ запрещен</b>")
+        return
+    
+    try:
+        user_id = int(message.text.split("_")[1])
+        success = await api_client.unban_user(user_id)
+        
+        if success:
+            await message.answer(f"<b>✅ Пользователь {user_id} разблокирован</b>")
+            try:
+                await bot.send_message(
+                    chat_id=user_id,
+                    text=f"<b>✅ Вы были разблокированы</b>\n\nТеперь вы можете пользоваться ботом и мини-приложением."
+                )
+            except:
+                pass
+        else:
+            await message.answer(f"<b>ℹ️ Пользователь не был заблокирован</b>")
+    
+    except Exception as e:
+        logger.error(f"Error in unban_short: {e}")
+        await message.answer("<b>❌ Ошибка выполнения команды</b>")
 
 # --- Обработчики action (Купить/Продать) ---
 @router.callback_query(F.data.startswith("action_"))
