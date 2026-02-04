@@ -225,28 +225,46 @@ const useBanCheck = () => {
     const checkBanStatus = async () => {
       const telegramUser = getTelegramUser();
 
+      // ✅ ИСПРАВЛЕНО: Если пользователь не в Telegram, сразу разрешаем доступ
       if (!telegramUser.valid) {
+        console.log('[BAN CHECK] Not a Telegram user, allowing access');
         setIsChecking(false);
         return;
       }
 
       try {
+        console.log(`[BAN CHECK] Checking ban status for user ${telegramUser.userId}`);
         const response = await axios.get(`${API}/banned/${telegramUser.userId}`, {
           timeout: 5000
         });
 
+        console.log('[BAN CHECK] Response:', response.data);
+
         if (response.data && response.data.banned) {
           setIsBanned(true);
-          console.log('User is banned:', response.data);
+          console.log('[BAN CHECK] User is banned:', response.data);
+        } else {
+          console.log('[BAN CHECK] User is not banned');
         }
       } catch (error) {
-        console.error('Error checking ban status:', error);
+        console.error('[BAN CHECK] Error checking ban status:', error);
+        // ✅ ИСПРАВЛЕНО: При ошибке API разрешаем доступ (безопасный fallback)
       } finally {
         setIsChecking(false);
       }
     };
 
-    checkBanStatus();
+    // ✅ ИСПРАВЛЕНО: Добавлен timeout на случай зависания
+    const timeoutId = setTimeout(() => {
+      console.warn('[BAN CHECK] Timeout reached, allowing access');
+      setIsChecking(false);
+    }, 6000); // 6 секунд максимум
+
+    checkBanStatus().then(() => {
+      clearTimeout(timeoutId);
+    });
+
+    return () => clearTimeout(timeoutId);
   }, []);
 
   return { isBanned, isChecking };
